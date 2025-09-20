@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
@@ -11,7 +12,22 @@ import {
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { createServerClient } from "@/lib/supabase/server";
+import { signOut } from "./(auth)/actions";
 
 import "./globals.css";
 
@@ -42,7 +58,7 @@ const APP_NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/app", label: "Overview", icon: LayoutDashboard },
   { href: "/app/habits", label: "Habits", icon: ListChecks },
   { href: "/app/insights", label: "Insights", icon: LineChart },
-  { href: "/app/profile", label: "Profile", icon: UserRound },
+  { href: "/app/me", label: "Profile", icon: UserRound },
 ];
 
 export const metadata: Metadata = {
@@ -60,12 +76,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const isAuthenticated = Boolean(
-    cookieStore.get("sb-access-token") ??
-      cookieStore.get("supabase-auth-token") ??
-      cookieStore.get("sb-refresh-token")
-  );
+  const supabase = await createServerClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
+  const isAuthenticated = Boolean(user);
 
   return (
     <html lang="en">
@@ -77,7 +94,7 @@ export default async function RootLayout({
         )}
       >
         <div className="flex min-h-dvh flex-col">
-          <SiteHeader />
+          <SiteHeader user={user} />
           <main className="flex-1">{children}</main>
           <SiteFooter />
         </div>
@@ -87,7 +104,7 @@ export default async function RootLayout({
   );
 }
 
-function SiteHeader() {
+function SiteHeader({ user }: { user: User | null }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:py-5">
@@ -112,11 +129,71 @@ function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <Button asChild size="lg">
-          <Link href="/app">Launch app</Link>
-        </Button>
+        {user ? <UserMenu user={user} /> : <SignInButton />}
       </div>
     </header>
+  );
+}
+
+function SignInButton() {
+  return (
+    <Button asChild size="lg">
+      <Link href="/login">Sign in</Link>
+    </Button>
+  );
+}
+
+function UserMenu({ user }: { user: User }) {
+  const initials = user.email?.[0]?.toUpperCase() ?? "U";
+  const displayName =
+    (user.user_metadata.full_name as string | undefined) ||
+    (user.user_metadata.name as string | undefined) ||
+    user.email ||
+    "Account";
+
+  async function handleSignOut() {
+    "use server";
+    await signOut();
+    redirect("/");
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <Button asChild size="lg" variant="outline" className="hidden sm:flex">
+        <Link href="/app">Open app</Link>
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger className="focus-visible:outline-none" asChild>
+          <button className="rounded-full border border-border/60 bg-transparent p-0">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user.user_metadata.avatar_url as string | undefined} />
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel className="space-y-1">
+            <p className="text-sm font-medium">{displayName}</p>
+            {user.email ? (
+              <p className="text-xs text-muted-foreground">{user.email}</p>
+            ) : null}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/app">Dashboard</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/app/me">Profile</Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <form action={handleSignOut}>
+            <DropdownMenuItem asChild>
+              <button type="submit" className="w-full text-left">Sign out</button>
+            </DropdownMenuItem>
+          </form>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 

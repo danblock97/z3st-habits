@@ -1,0 +1,91 @@
+import { redirect } from 'next/navigation';
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { createServerClient } from '@/lib/supabase/server';
+
+import { ProfileForm } from './profile-form';
+
+export default async function MePage() {
+  const supabase = await createServerClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    redirect('/login');
+  }
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('id, username, timezone, emoji')
+    .eq('id', session.user.id)
+    .maybeSingle();
+
+  if (error) {
+    redirect('/app');
+  }
+
+  let ensuredProfile = profile;
+
+  if (!ensuredProfile) {
+    const { data: insertedProfile, error: insertError } = await supabase
+      .from('profiles')
+      .insert({ id: session.user.id })
+      .select('id, username, timezone, emoji')
+      .single();
+
+    if (insertError && insertError.code !== '23505') {
+      redirect('/app');
+    }
+
+    if (!insertedProfile) {
+      const { data: fallbackProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('id, username, timezone, emoji')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (fetchError) {
+        redirect('/app');
+      }
+
+      ensuredProfile = fallbackProfile;
+    } else {
+      ensuredProfile = insertedProfile;
+    }
+  }
+
+  if (!ensuredProfile) {
+    redirect('/app');
+  }
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">Your profile</h1>
+        <p className="text-muted-foreground">
+          Tailor how your identity shows up across Z3st. We auto-detected your timezone, but you can update it anytime.
+        </p>
+      </div>
+      <Card className="border-border/60 bg-background/95 shadow-sm">
+        <CardHeader className="space-y-1">
+          <CardTitle>Account basics</CardTitle>
+          <CardDescription>
+            Pick a handle, preferred timezone, and optional emoji flair.
+          </CardDescription>
+        </CardHeader>
+        <Separator className="mx-6" />
+        <CardContent className="pt-6">
+          <ProfileForm profile={ensuredProfile} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
