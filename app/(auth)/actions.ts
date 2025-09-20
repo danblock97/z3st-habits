@@ -15,8 +15,9 @@ const originFallback = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:300
 const googleClientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 
-function getRedirectUrl(path: string) {
-  const origin = headers().get('origin') ?? originFallback;
+async function getRedirectUrl(path: string) {
+  const headerList = await headers();
+  const origin = headerList.get('origin') ?? originFallback;
   return new URL(path, origin).toString();
 }
 
@@ -36,10 +37,11 @@ export async function signInWithEmail(
   }
 
   const supabase = await createServerClient();
+  const redirectTo = await getRedirectUrl('/auth/callback');
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email.toLowerCase(),
     options: {
-      emailRedirectTo: getRedirectUrl('/auth/callback'),
+      emailRedirectTo: redirectTo,
     },
   });
 
@@ -62,10 +64,11 @@ export async function signInWithGoogle() {
   }
 
   const supabase = await createServerClient();
+  const redirectTo = await getRedirectUrl('/auth/callback');
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: getRedirectUrl('/auth/callback'),
+      redirectTo,
       queryParams: {
         prompt: 'consent',
         access_type: 'offline',
