@@ -24,15 +24,27 @@ export default async function MePage() {
 
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, username, timezone, emoji')
+    .select('id, username, timezone, emoji, bio, is_public')
     .eq('id', session.user.id)
     .maybeSingle();
 
-  if (error) {
-    redirect('/app');
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let ensuredProfile: Record<string, any> | null = profile;
 
-  let ensuredProfile = profile;
+  // If there's an error, try selecting just the basic fields
+  if (error) {
+    const { data: basicProfile, error: basicError } = await supabase
+      .from('profiles')
+      .select('id, username, timezone, emoji')
+      .eq('id', session.user.id)
+      .single();
+
+    if (basicError) {
+      redirect('/app');
+    }
+
+    ensuredProfile = basicProfile;
+  }
 
   if (!ensuredProfile) {
     const { data: insertedProfile, error: insertError } = await supabase

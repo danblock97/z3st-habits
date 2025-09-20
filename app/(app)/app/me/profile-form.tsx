@@ -5,6 +5,9 @@ import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { ShareButton } from '@/components/ui/share-button';
 import { cn } from '@/lib/utils';
 
 import { updateProfile } from './actions';
@@ -17,24 +20,43 @@ type Profile = {
   username: string | null;
   timezone: string | null;
   emoji: string | null;
+  is_public: boolean | null;
+  bio: string | null;
+};
+
+type ProfileWithDefaults = Profile & {
+  is_public: boolean;
+  bio: string;
 };
 
 const EMOJI_CHOICES = ['🍋', '🍊', '🍉', '🍇', '🍓', '🍑', '🥝', '🥥', '🌿', '⭐', '🔥', '⚡'];
 
-export function ProfileForm({ profile }: { profile: Profile }) {
+export function ProfileForm({ profile }: { profile: Profile | Record<string, string | null | boolean> }) {
   const [state, formAction] = useActionState(updateProfile, profileFormInitialState);
-  const [username, setUsername] = useState(profile.username ?? '');
-  const [emoji, setEmoji] = useState(profile.emoji ?? '');
-  const [timezone, setTimezone] = useState(profile.timezone ?? '');
+  const [username, setUsername] = useState(String(profile.username ?? ''));
+  const [emoji, setEmoji] = useState(String(profile.emoji ?? ''));
+  const [timezone, setTimezone] = useState(String(profile.timezone ?? ''));
+  const [isPublic, setIsPublic] = useState(Boolean(profile.is_public ?? false));
+  const [bio, setBio] = useState(String(profile.bio ?? ''));
+
+  const profileWithDefaults: ProfileWithDefaults = {
+    username: (profile.username as string) ?? null,
+    timezone: (profile.timezone as string) ?? null,
+    emoji: (profile.emoji as string) ?? null,
+    is_public: Boolean(profile.is_public ?? false),
+    bio: (profile.bio as string) ?? '',
+  };
   const hasAutoFilledTimezone = useRef<boolean>(
     Boolean(profile.timezone && profile.timezone !== 'UTC'),
   );
 
   useEffect(() => {
-    setUsername(profile.username ?? '');
-    setEmoji(profile.emoji ?? '');
-    setTimezone(profile.timezone ?? '');
-  }, [profile.username, profile.emoji, profile.timezone]);
+    setUsername(profileWithDefaults.username ?? '');
+    setEmoji(profileWithDefaults.emoji ?? '');
+    setTimezone(profileWithDefaults.timezone ?? '');
+    setIsPublic(profileWithDefaults.is_public);
+    setBio(profileWithDefaults.bio);
+  }, [profileWithDefaults.username, profileWithDefaults.emoji, profileWithDefaults.timezone, profileWithDefaults.is_public, profileWithDefaults.bio]);
 
   useEffect(() => {
     if (hasAutoFilledTimezone.current) {
@@ -159,6 +181,58 @@ export function ProfileForm({ profile }: { profile: Profile }) {
           <p className="text-xs text-destructive">{state.fieldErrors.emoji}</p>
         ) : null}
       </div>
+
+      {profileWithDefaults.bio !== undefined && (
+        <div className="grid gap-2">
+          <Label htmlFor="bio" className="text-sm font-medium text-foreground">
+            Bio (optional)
+          </Label>
+          <textarea
+            id="bio"
+            name="bio"
+            value={bio}
+            onChange={(event) => setBio(event.target.value)}
+            placeholder="Tell others about yourself..."
+            rows={3}
+            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-invalid={Boolean(state.fieldErrors?.bio)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Share a bit about yourself. This will be visible on your public profile.
+          </p>
+          {state.fieldErrors?.bio ? (
+            <p className="text-xs text-destructive">{state.fieldErrors.bio}</p>
+          ) : null}
+        </div>
+      )}
+
+      {profileWithDefaults.is_public !== undefined && (
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="is-public" className="text-sm font-medium text-foreground">
+              Public profile
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Allow others to view your profile and habit stats.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {isPublic && (
+              <ShareButton title="My profile" />
+            )}
+          <input
+            type="hidden"
+            name="is_public"
+            value={isPublic ? 'true' : 'false'}
+          />
+          <Switch
+            id="is-public"
+            checked={isPublic}
+            onCheckedChange={setIsPublic}
+          />
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-end">
         <SubmitButton state={state} />

@@ -23,6 +23,13 @@ const profileSchema = z.object({
     .max(4, 'Emoji must be at most 2 characters long.')
     .optional()
     .transform((value) => (value ? value : null)),
+  bio: z
+    .string()
+    .trim()
+    .max(500, 'Bio must be at most 500 characters long.')
+    .optional()
+    .transform((value) => (value ? value : null)),
+  is_public: z.boolean().optional(),
 });
 
 type ProfileInput = z.infer<typeof profileSchema>;
@@ -35,6 +42,8 @@ export async function updateProfile(
     username: formData.get('username'),
     timezone: formData.get('timezone'),
     emoji: formData.get('emoji') ?? undefined,
+    bio: formData.get('bio') ?? undefined,
+    is_public: formData.get('is_public') === 'true' ? true : formData.get('is_public') === 'false' ? false : undefined,
   });
 
   if (!parsed.success) {
@@ -68,13 +77,23 @@ export async function updateProfile(
     };
   }
 
+  const updateData: Record<string, string | null | boolean> = {
+    username: parsed.data.username,
+    timezone: parsed.data.timezone,
+    emoji: parsed.data.emoji ?? null,
+  };
+
+  // Only update bio and is_public if they were provided (these columns might not exist yet)
+  if (parsed.data.bio !== undefined) {
+    updateData.bio = parsed.data.bio ?? null;
+  }
+  if (parsed.data.is_public !== undefined) {
+    updateData.is_public = parsed.data.is_public ?? false;
+  }
+
   const { data, error } = await supabase
     .from('profiles')
-    .update({
-      username: parsed.data.username,
-      timezone: parsed.data.timezone,
-      emoji: parsed.data.emoji ?? null,
-    })
+    .update(updateData)
     .eq('id', session.user.id)
     .select('id')
     .single();
@@ -90,7 +109,7 @@ export async function updateProfile(
 
     return {
       status: 'error',
-      message: error?.message ?? 'We could not update your profile right now.',
+      message: error?.message ?? 'We could not update your profile right now. Please try again.',
     };
   }
 
