@@ -12,8 +12,9 @@ import {
   type FormEvent,
 } from "react";
 import { useFormStatus } from "react-dom";
-import { CalendarClock, CircleDot, ListChecks, Plus, Sparkles } from "lucide-react";
+import { AlertTriangle, CalendarClock, CircleDot, ListChecks, Plus, Sparkles } from "lucide-react";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +36,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { checkStreakRisk } from "@/lib/streak-risk";
 
 import { completeHabitToday, createHabit } from "./actions";
 import { habitFormInitialState } from "./form-state";
@@ -163,9 +165,34 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
   const [pendingCheckins, setPendingCheckins] = useState<Record<string, boolean>>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Streak risk detection
+  const streakRisk = useMemo(() => {
+    return checkStreakRisk(optimisticHabits);
+  }, [optimisticHabits]);
+
   const sortedHabits = useMemo(() => {
     return [...optimisticHabits].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [optimisticHabits]);
+
+  // Create refs for each habit to enable scrolling
+  const habitRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  const scrollToMostAtRiskHabit = useCallback(() => {
+    if (streakRisk.mostAtRiskHabit) {
+      const element = habitRefs.current.get(streakRisk.mostAtRiskHabit.id);
+      if (element) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+        // Add a subtle highlight effect
+        element.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+        setTimeout(() => {
+          element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+        }, 2000);
+      }
+    }
+  }, [streakRisk.mostAtRiskHabit]);
 
 
   const handleTodayClick = useCallback(
@@ -218,11 +245,27 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
         </Button>
       </div>
 
+      {/* Streak Risk Banner */}
+      {streakRisk.isAtRisk && streakRisk.mostAtRiskHabit && (
+        <Alert variant="warning" className="cursor-pointer" onClick={scrollToMostAtRiskHabit}>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>
+            Streak at Risk! 🔥
+            {streakRisk.riskCount > 1 && ` (${streakRisk.riskCount} habits)`}
+          </AlertTitle>
+          <AlertDescription>
+            Your <strong>{streakRisk.mostAtRiskHabit.title}</strong> streak of{' '}
+            <strong>{streakRisk.mostAtRiskHabit.currentStreak} days</strong> is at risk. Complete it today to keep the momentum going!
+          </AlertDescription>
+        </Alert>
+      )}
+
       {hasHabits ? (
         <HabitGrid
           habits={sortedHabits}
           onCheckIn={handleTodayClick}
           pendingCheckins={pendingCheckins}
+          habitRefs={habitRefs}
         />
       ) : (
         <EmptyHabitsState onCreate={() => setIsDialogOpen(true)} />
@@ -244,10 +287,12 @@ function HabitGrid({
   habits,
   onCheckIn,
   pendingCheckins,
+  habitRefs,
 }: {
   habits: HabitListItem[];
   onCheckIn: (habit: HabitListItem) => void;
   pendingCheckins: Record<string, boolean>;
+  habitRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
 }) {
   if (!habits.length) {
     return null;
@@ -258,6 +303,13 @@ function HabitGrid({
       {habits.map((habit) => (
         <Card
           key={habit.id}
+          ref={(el) => {
+            if (el) {
+              habitRefs.current.set(habit.id, el);
+            } else {
+              habitRefs.current.delete(habit.id);
+            }
+          }}
           className={cn(
             "border-border/60 bg-card/80 shadow-sm transition",
             habit.isOptimistic ? "ring-2 ring-primary/40" : "hover:border-border"
