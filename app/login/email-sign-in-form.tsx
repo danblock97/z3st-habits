@@ -18,9 +18,10 @@ type Props = {
     state: EmailSignInState,
     formData: FormData,
   ) => Promise<EmailSignInState>;
+  redirectTo?: string;
 };
 
-export function EmailSignInForm({ action }: Props) {
+export function EmailSignInForm({ action, redirectTo }: Props) {
   const [state, formAction] = useActionState(action, initialState);
 
   return (
@@ -37,6 +38,9 @@ export function EmailSignInForm({ action }: Props) {
           autoComplete="email"
           required
         />
+        {redirectTo && (
+          <input type="hidden" name="redirectTo" value={redirectTo} />
+        )}
       </div>
       {state.message ? (
         <p

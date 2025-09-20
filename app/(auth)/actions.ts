@@ -37,11 +37,20 @@ export async function signInWithEmail(
   }
 
   const supabase = await createServerClient();
-  const redirectTo = await getRedirectUrl('/auth/callback');
+  const callbackUrl = await getRedirectUrl('/auth/callback');
+
+  // Get redirectTo from form data
+  const redirectTo = formData.get('redirectTo') as string;
+
+  // If there's a redirectTo parameter, pass it to the callback
+  const finalRedirectTo = redirectTo
+    ? `${callbackUrl}?next=${encodeURIComponent(redirectTo)}`
+    : callbackUrl;
+
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email.toLowerCase(),
     options: {
-      emailRedirectTo: redirectTo,
+      emailRedirectTo: finalRedirectTo,
     },
   });
 
@@ -58,17 +67,26 @@ export async function signInWithEmail(
   };
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(formData: FormData) {
   if (!googleClientId || !googleClientSecret) {
     redirect('/login?error=Google%20sign-in%20is%20not%20configured.');
   }
 
   const supabase = await createServerClient();
-  const redirectTo = await getRedirectUrl('/auth/callback');
+  const callbackUrl = await getRedirectUrl('/auth/callback');
+
+  // Get redirectTo from form data
+  const redirectTo = formData.get('redirectTo') as string;
+
+  // If there's a redirectTo parameter, pass it to the callback
+  const finalRedirectTo = redirectTo
+    ? `${callbackUrl}?next=${encodeURIComponent(redirectTo)}`
+    : callbackUrl;
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo,
+      redirectTo: finalRedirectTo,
       queryParams: {
         prompt: 'consent',
         access_type: 'offline',

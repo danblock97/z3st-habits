@@ -16,10 +16,13 @@ import { createServerClient } from '@/lib/supabase/server';
 import { EmailSignInForm } from './email-sign-in-form';
 import { signInWithEmail, signInWithGoogle } from '../(auth)/actions';
 
+import type { EmailSignInState } from '@/lib/auth/types';
+
 type LoginPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     error?: string;
-  };
+    redirectTo?: string;
+  }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -32,7 +35,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     redirect('/app');
   }
 
-  const errorMessage = searchParams?.error;
+  const resolvedSearchParams = await searchParams;
+  const errorMessage = resolvedSearchParams?.error;
   const isGoogleOAuthConfigured = Boolean(
     process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET,
   );
@@ -50,6 +54,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           {isGoogleOAuthConfigured ? (
             <>
               <form action={signInWithGoogle} className="space-y-4">
+                {resolvedSearchParams?.redirectTo && (
+                  <input type="hidden" name="redirectTo" value={resolvedSearchParams.redirectTo} />
+                )}
                 <Button variant="outline" type="submit" className="w-full">
                   <Chrome className="mr-2 h-4 w-4" aria-hidden="true" />
                   Continue with Google
@@ -67,7 +74,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Google sign-in is not configured yet. Use your email to request a magic link.
             </p>
           )}
-          <EmailSignInForm action={signInWithEmail} />
+          <EmailSignInForm action={signInWithEmail} redirectTo={resolvedSearchParams?.redirectTo} />
           {errorMessage ? (
             <p className="text-sm text-destructive">
               {decodeURIComponent(errorMessage)}
