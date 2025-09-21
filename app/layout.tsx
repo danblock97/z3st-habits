@@ -64,11 +64,71 @@ const APP_NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
 export const metadata: Metadata = {
   metadataBase: new URL("https://z3st.app"),
   title: {
-    default: "Z3st Habits",
+    default: "Z3st Habits - Build Habits That Actually Stick",
     template: "%s | Z3st Habits",
   },
   description:
-    "Z3st Habits is the citrus-powered ritual system for founders and creatives to design habits that actually stick.",
+    "Transform your productivity with Z3st Habits. The citrus-powered habit system that adapts to your energy, celebrates wins, and builds momentum without burnout. Start free today.",
+  keywords: [
+    "habit tracking",
+    "productivity app",
+    "habit formation",
+    "goal tracking",
+    "streak tracking",
+    "morning routine",
+    "personal development",
+    "self improvement",
+    "ritual building",
+    "focus app",
+  ],
+  authors: [{ name: "Z3st Team" }],
+  creator: "Z3st",
+  publisher: "Z3st",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://z3st.app",
+    title: "Z3st Habits - Build Habits That Actually Stick",
+    description: "Transform your productivity with Z3st Habits. The citrus-powered habit system that adapts to your energy, celebrates wins, and builds momentum without burnout.",
+    siteName: "Z3st Habits",
+    images: [
+      {
+        url: "/og",
+        width: 1200,
+        height: 630,
+        alt: "Z3st Habits - Build Habits That Actually Stick",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Z3st Habits - Build Habits That Actually Stick",
+    description: "Transform your productivity with Z3st Habits. The citrus-powered habit system that adapts to your energy, celebrates wins, and builds momentum without burnout.",
+    images: ["/og"],
+    creator: "@z3sthabits",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: "your-google-site-verification-code",
+  },
 };
 
 export default async function RootLayout({

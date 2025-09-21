@@ -8,6 +8,9 @@ import {
   Medal,
   ShieldCheck,
   Sparkles,
+  Users,
+  TrendingUp,
+  Target,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { createServerClient } from "@/lib/supabase/server";
 
 const featureCards = [
   {
@@ -29,7 +33,7 @@ const featureCards = [
       "Let Z3st auto-adjust daily targets based on your energy score, calendar load, and streak health.",
     icon: Sparkles,
     points: [
-      "Server Actions personalize each plan without breaking Supabase RLS",
+      "Server Actions personalize each plan with secure data handling",
       "Energy check-ins stay under 30 seconds with predictive defaults",
       "Suggested resets keep momentum when life gets messy",
     ],
@@ -41,7 +45,7 @@ const featureCards = [
       "Live dashboards show habit velocity, compounding streaks, and attention leaks so you can course correct fast.",
     icon: LineChart,
     points: [
-      "Supabase realtime streams streak events to every device instantly",
+      "Real-time sync keeps your progress updated across all devices instantly",
       "Tabs let you flip between streaks, energy, and focus arenas",
       "Progress indicators highlight where you're trending ahead",
     ],
@@ -60,9 +64,9 @@ const featureCards = [
   },
   {
     badge: "Secure by default",
-    title: "Privacy-first by using Supabase + Stripe standards",
+    title: "Privacy-first with enterprise-grade security",
     description:
-      "Your rituals stay yours. Z3st wraps Supabase row-level security with encrypted client storage.",
+      "Your rituals stay yours. Z3st uses industry-standard security with encrypted storage and secure data handling.",
     icon: ShieldCheck,
     points: [
       "Automatic session rotation keeps tokens fresh",
@@ -72,9 +76,70 @@ const featureCards = [
   },
 ];
 
-export default function Home() {
+const socialProofItems = [
+  {
+    icon: Users,
+    title: "Track any habit",
+    description: "From morning routines to evening wind-downs, build consistency in whatever matters most to you.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Build with others",
+    description: "Create groups, share progress, and stay accountable together with friends and communities.",
+  },
+  {
+    icon: Target,
+    title: "See your progress",
+    description: "Detailed analytics and leaderboards show your improvement over time and how you stack up.",
+  },
+];
+
+const faqItems = [
+  {
+    question: "How is Z3st different from other habit apps?",
+    answer: "Z3st treats habits as a system, not individual tasks. It connects your energy levels, calendar events, and streak health to automatically adjust your daily targets. Instead of rigid checklists, you get adaptive routines that flex with your life.",
+  },
+  {
+    question: "Do I need to check in every day?",
+    answer: "Not at all! Z3st is designed for busy creators. Most check-ins take under 30 seconds with predictive defaults. The app learns your patterns and suggests the right actions at the right time.",
+  },
+  {
+    question: "What happens if I miss a day?",
+    answer: "Missing days happens to everyone. Z3st suggests gentle resets rather than breaking streaks entirely. The focus is on building sustainable momentum, not perfection.",
+  },
+  {
+    question: "Can I share my progress with others?",
+    answer: "Yes! Z3st includes playful accountability features where you can share progress snapshots, unlock achievement badges, and celebrate wins with your community. It's designed to make habit building more fun and social.",
+  },
+  {
+    question: "Is my data private and secure?",
+    answer: "Absolutely. Z3st uses Supabase's enterprise-grade security with row-level security policies. Your personal rituals and progress data stay yours, protected with the same standards used by major tech companies.",
+  },
+  {
+    question: "What if I need to change my subscription?",
+    answer: "You can upgrade, downgrade, or cancel at any time from your account settings. Changes take effect immediately, and we'll handle prorated billing automatically.",
+  },
+];
+
+
+export default async function Home() {
+  const supabase = await createServerClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const isAuthenticated = Boolean(session);
+  const primaryCta = isAuthenticated ? {
+    text: "Go to Dashboard",
+    href: "/app",
+  } : {
+    text: "Get Started Free",
+    href: "/login",
+  };
+
   return (
     <div className="flex flex-col">
+      {/* Hero Section */}
       <section className="relative isolate overflow-hidden">
         <div className="pointer-events-none absolute inset-x-0 -top-48 h-[420px] bg-[radial-gradient(circle_at_top,_rgba(255,180,0,0.18),_transparent_65%)]" />
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 pb-16 pt-20 sm:gap-12 sm:pb-24 sm:pt-24">
@@ -94,13 +159,13 @@ export default function Home() {
               </p>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center lg:justify-start">
                 <Button asChild size="lg">
-                  <Link href="/app">
-                    Launch the app
+                  <Link href={primaryCta.href}>
+                    {primaryCta.text}
                     <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline">
-                  <Link href="#features">See the flow</Link>
+                  <Link href="#features">See Features</Link>
                 </Button>
               </div>
               <div className="grid gap-3 text-left text-sm text-foreground/80 sm:grid-cols-3">
@@ -169,7 +234,7 @@ export default function Home() {
                 <div className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/80 p-3 text-sm">
                   <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
                   <p className="text-muted-foreground">
-                    Protected with Supabase row-level security and realtime sync.
+                    Protected with enterprise-grade security and real-time sync.
                   </p>
                 </div>
               </CardContent>
@@ -177,9 +242,46 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Social Proof Section */}
+      <section className="border-t border-border/60 bg-card/30 py-16 sm:py-20">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-4">
+          <div className="mx-auto flex max-w-3xl flex-col gap-4 text-center">
+            <Badge
+              variant="outline"
+              className="mx-auto border-primary/40 text-foreground"
+            >
+              Simple habit tracking for everyone
+            </Badge>
+            <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+              Build better habits, together
+            </h2>
+            <p className="text-lg text-foreground/70">
+              Whether you&apos;re tracking personal goals, building routines with friends, or competing on leaderboards, Z3st makes habit formation social, insightful, and sustainable.
+            </p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-3">
+            {socialProofItems.map((item) => (
+              <Card key={item.title} className="bg-background/80 text-center">
+                <CardHeader>
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                    <item.icon className="h-6 w-6 text-primary" aria-hidden="true" />
+                  </div>
+                  <CardTitle className="text-xl">{item.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-base">{item.description}</CardDescription>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
       <section
         id="features"
-        className="border-t border-border/60 bg-card/30 py-16 sm:py-20"
+        className="border-t border-border/60 bg-background py-16 sm:py-20"
       >
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-4">
           <div className="mx-auto flex max-w-3xl flex-col gap-4 text-center">
@@ -187,18 +289,18 @@ export default function Home() {
               variant="outline"
               className="mx-auto border-primary/40 text-foreground"
             >
-              Designed for focused builders
+              Everything you need to build habits
             </Badge>
             <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
               Make momentum your default state
             </h2>
             <p className="text-lg text-foreground/70">
-              Z3st Habits connects cues, rituals, and reflections into one citrus-flavored operating system. No more siloed trackers or brittle checklists—just an energized rhythm.
+              Z3st Habits connects cues, rituals, and reflections into one seamless system. No more scattered trackers or forgotten goals—just consistent progress and lasting change.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2">
             {featureCards.map((feature) => (
-              <Card key={feature.title} className="bg-background/80">
+              <Card key={feature.title} className="bg-card/80">
                 <CardHeader className="flex flex-col gap-3">
                   <Badge
                     variant="secondary"
@@ -224,6 +326,60 @@ export default function Home() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+
+
+      {/* FAQ Section */}
+      <section className="border-t border-border/60 bg-card/30 py-16 sm:py-20">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-4">
+          <div className="mx-auto flex max-w-3xl flex-col gap-4 text-center">
+            <Badge
+              variant="outline"
+              className="mx-auto border-primary/40 text-foreground"
+            >
+              Common questions
+            </Badge>
+            <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+              Everything you need to know
+            </h2>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            {faqItems.map((faq) => (
+              <Card key={faq.question} className="bg-background/80">
+                <CardHeader>
+                  <CardTitle className="text-lg leading-tight">{faq.question}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">{faq.answer}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="border-t border-border/60 bg-gradient-to-b from-background to-card/40 py-16 sm:py-20">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 text-center">
+          <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
+            Ready to build habits that actually stick?
+          </h2>
+          <p className="text-lg text-foreground/70">
+            Start your habit-building journey today with Z3st&apos;s simple, effective system.
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+            <Button asChild size="lg">
+              <Link href={primaryCta.href}>
+                {primaryCta.text}
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href="#features">See Features</Link>
+            </Button>
           </div>
         </div>
       </section>

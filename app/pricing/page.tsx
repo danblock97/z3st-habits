@@ -67,13 +67,68 @@ export default function PricingPage() {
   }, []);
 
   const renderPlanButton = (targetTier: string, planType: string) => {
-    if (currentTier === targetTier) {
-      return (
-        <div className="space-y-2">
-          <Button variant="outline" className="w-full" size="lg" disabled>
-            Current Plan
-          </Button>
-          <Alert className="border-blue-200 bg-blue-50">
+    // Determine button text based on target tier and current tier
+    let buttonText = 'Get Started';
+    let isDisabled = false;
+    let buttonVariant: "default" | "outline" | "secondary" | "destructive" | "ghost" | "link" = 'default';
+    let buttonClass = `w-full ${targetTier === 'pro'
+      ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+      : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
+    }`;
+
+    // If user is not signed in (currentTier is null), show get started options
+    if (currentTier === null) {
+      if (targetTier === 'pro') {
+        buttonText = 'Get Started with Pro';
+        buttonVariant = 'default';
+      } else if (targetTier === 'plus') {
+        buttonText = 'Get Started with Plus';
+        buttonVariant = 'default';
+      } else {
+        buttonText = 'Get Started Free';
+        buttonVariant = 'outline';
+      }
+    } else if (currentTier === targetTier) {
+      buttonText = 'Current Plan';
+      isDisabled = true;
+      buttonVariant = 'outline';
+      buttonClass = 'w-full';
+    } else if (targetTier === 'pro') {
+      if (currentTier === 'free') {
+        buttonText = 'Upgrade to Pro';
+        buttonVariant = 'default';
+      } else {
+        buttonText = 'Downgrade to Pro';
+        isDisabled = true;
+        buttonVariant = 'outline';
+        buttonClass = 'w-full';
+      }
+    } else if (targetTier === 'plus') {
+      if (currentTier === 'pro') {
+        // If user is on Pro, don't allow direct upgrade to Plus from pricing page
+        buttonText = 'Upgrade to Plus';
+        isDisabled = true;
+        buttonVariant = 'outline';
+        buttonClass = 'w-full';
+      } else {
+        buttonText = 'Upgrade to Plus';
+        buttonVariant = 'default';
+      }
+    }
+
+    return (
+      <div className="h-12 flex flex-col items-center justify-center">
+        <Button
+          variant={buttonVariant}
+          className={buttonClass}
+          size="lg"
+          onClick={isDisabled ? undefined : () => handleSubscribe(planType)}
+          disabled={isDisabled || isLoading}
+        >
+          {isLoading ? 'Processing...' : buttonText}
+        </Button>
+        {isDisabled && (
+          <Alert className="border-blue-200 bg-blue-50 mt-2">
             <AlertDescription className="text-blue-800 text-sm">
               To upgrade or manage your subscription, visit{' '}
               <a href="/app/me" className="font-medium underline hover:no-underline">
@@ -82,65 +137,8 @@ export default function PricingPage() {
               {' '}for proper prorated billing.
             </AlertDescription>
           </Alert>
-        </div>
-      );
-    }
-
-    // If user is on Pro, don't allow direct upgrade to Plus from pricing page
-    if (currentTier === 'pro' && targetTier === 'plus') {
-      return (
-        <div className="space-y-2">
-          <Button variant="outline" className="w-full" size="lg" disabled>
-            Upgrade to Plus
-          </Button>
-          <Alert className="border-blue-200 bg-blue-50">
-            <AlertDescription className="text-blue-800 text-sm">
-              To upgrade from Pro to Plus, visit{' '}
-              <a href="/app/me" className="font-medium underline hover:no-underline">
-                your account settings
-              </a>
-              {' '}for proper prorated billing.
-            </AlertDescription>
-          </Alert>
-        </div>
-      );
-    }
-
-    // If user is on Plus, don't allow downgrade to Pro from pricing page
-    if (currentTier === 'plus' && targetTier === 'pro') {
-      return (
-        <div className="space-y-2">
-          <Button variant="outline" className="w-full" size="lg" disabled>
-            Downgrade to Pro
-          </Button>
-          <Alert className="border-blue-200 bg-blue-50">
-            <AlertDescription className="text-blue-800 text-sm">
-              To change your subscription, visit{' '}
-              <a href="/app/me" className="font-medium underline hover:no-underline">
-                your account settings
-              </a>
-              {' '}for proper prorated billing.
-            </AlertDescription>
-          </Alert>
-        </div>
-      );
-    }
-
-    const isUpgrade = currentTier === 'free' && targetTier === 'pro';
-    const buttonText = isUpgrade ? 'Upgrade to Pro' : 'Upgrade to Plus';
-
-    return (
-      <Button
-        className={`w-full ${targetTier === 'pro'
-          ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-          : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
-        }`}
-        size="lg"
-        onClick={() => handleSubscribe(planType)}
-        disabled={isLoading}
-      >
-        {isLoading ? 'Processing...' : buttonText}
-      </Button>
+        )}
+      </div>
     );
   };
 
@@ -270,9 +268,16 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Button variant="outline" className="w-full" size="lg">
-                Get Started Free
-              </Button>
+              <div className="h-12 flex items-center justify-center">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                  onClick={() => window.location.href = '/login'}
+                >
+                  Get Started Free
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
