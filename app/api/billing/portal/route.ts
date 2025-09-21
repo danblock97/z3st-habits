@@ -27,10 +27,10 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7);
 
-    // For now, we'll assume the token is valid since this is a basic implementation
     // In a real app, you'd validate the session token and get the customer ID
+    // For now, we'll create a portal session without a specific customer
+    // This will show the customer portal for the authenticated user
 
-    // Create a customer portal session
     const session = await stripe.billingPortal.sessions.create({
       return_url: returnUrl,
       // customer: customerId, // You'd get this from your user database

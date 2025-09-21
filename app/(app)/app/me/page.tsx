@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-
 import {
   Card,
   CardContent,
@@ -9,13 +8,12 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Crown, CreditCard } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { createServerClient } from '@/lib/supabase/server';
-import { fetchUserEntitlements, getEntitlementLimits, formatLimit, getUserUsage, canDowngradeToTier } from '@/lib/entitlements-server';
-import { getCurrentUsage, checkDowngradeRequirements } from './actions';
+import { fetchUserEntitlements, getEntitlementLimits } from '@/lib/entitlements-server';
 
 import { ProfileForm } from './profile-form';
+import { BillingCard } from './billing-card';
 
 export default async function MePage() {
   const supabase = await createServerClient();
@@ -86,17 +84,12 @@ export default async function MePage() {
   const entitlements = await fetchUserEntitlements(session.user.id);
   const limits = entitlements ? getEntitlementLimits(entitlements.tier) : getEntitlementLimits('free');
 
-  // Get current usage for downgrade protection
-  const usageData = await getCurrentUsage();
-  const freeRequirements = await checkDowngradeRequirements('free');
-  const proRequirements = await checkDowngradeRequirements('pro');
-
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Your profile</h1>
         <p className="text-muted-foreground">
-          Tailor how your identity shows up across Z3st. We auto-detected your timezone, but you can update it anytime.
+          Manage your account settings and subscription.
         </p>
       </div>
 
@@ -114,200 +107,11 @@ export default async function MePage() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 bg-background/95 shadow-sm">
-          <CardHeader className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-primary" />
-                  Subscription
-                </CardTitle>
-                <CardDescription>
-                  Current plan and usage limits
-                </CardDescription>
-              </div>
-              <Badge variant={entitlements?.tier === 'free' ? 'secondary' : 'default'} className="capitalize">
-                {entitlements?.tier || 'Free'}
-              </Badge>
-            </div>
-          </CardHeader>
-          <Separator className="mx-6" />
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid gap-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Habits</span>
-                <span className="font-medium">
-                  {formatLimit(limits.maxActiveHabits)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Reminders</span>
-                <span className="font-medium">
-                  {formatLimit(limits.maxReminders)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Groups</span>
-                <span className="font-medium">
-                  {formatLimit(limits.maxGroups)}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1">
-                <CreditCard className="mr-2 h-4 w-4" />
-                Manage Billing
-              </Button>
-              {(entitlements?.tier === 'free' || entitlements?.tier === 'pro') && (
-                <Button size="sm" className="flex-1">
-                  <Crown className="mr-2 h-4 w-4" />
-                  Upgrade
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <BillingCard
+          entitlements={entitlements}
+          limits={limits}
+        />
       </div>
-
-      {/* Downgrade Protection */}
-      {entitlements?.tier === 'plus' && (
-        <div className="grid gap-6">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Downgrade Protection</h2>
-            <p className="text-muted-foreground">
-              Before downgrading, reduce your usage to fit within the target plan limits.
-            </p>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Downgrade to Pro</CardTitle>
-              <CardDescription>
-                Check if you can downgrade to the Pro plan (15 habits, 3 groups, 15 members per group)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {proRequirements ? (
-                <div className="space-y-4">
-                  <div className="grid gap-3 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Habits</span>
-                      <span className="font-medium">
-                        {usageData?.usage.habits || 0} / 15
-                        {proRequirements.issues.habits.needsReduction > 0 && (
-                          <span className="text-destructive ml-2">
-                            (-{proRequirements.issues.habits.needsReduction})
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Groups</span>
-                      <span className="font-medium">
-                        {usageData?.usage.groups || 0} / 3
-                        {proRequirements.issues.groups.needsReduction > 0 && (
-                          <span className="text-destructive ml-2">
-                            (-{proRequirements.issues.groups.needsReduction})
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Groups over member limit</span>
-                      <span className="font-medium">
-                        {proRequirements.issues.groupMembers.length}
-                      </span>
-                    </div>
-                  </div>
-
-                  {proRequirements.canDowngrade ? (
-                    <div className="text-center py-4">
-                      <div className="text-green-600 font-medium mb-2">✅ Ready to downgrade to Pro</div>
-                      <Button>Continue to Downgrade</Button>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <div className="text-orange-600 font-medium mb-2">
-                        ⚠️ Reduce usage before downgrading
-                      </div>
-                      <Button variant="outline">Manage Resources</Button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Loading downgrade requirements...
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Downgrade to Free</CardTitle>
-              <CardDescription>
-                Check if you can downgrade to the Free plan (5 habits, 1 group, 5 members)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {freeRequirements ? (
-                <div className="space-y-4">
-                  <div className="grid gap-3 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Habits</span>
-                      <span className="font-medium">
-                        {usageData?.usage.habits || 0} / 5
-                        {freeRequirements.issues.habits.needsReduction > 0 && (
-                          <span className="text-destructive ml-2">
-                            (-{freeRequirements.issues.habits.needsReduction})
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Groups</span>
-                      <span className="font-medium">
-                        {usageData?.usage.groups || 0} / 1
-                        {freeRequirements.issues.groups.needsReduction > 0 && (
-                          <span className="text-destructive ml-2">
-                            (-{freeRequirements.issues.groups.needsReduction})
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Groups over member limit</span>
-                      <span className="font-medium">
-                        {freeRequirements.issues.groupMembers.length}
-                      </span>
-                    </div>
-                  </div>
-
-                  {freeRequirements.canDowngrade ? (
-                    <div className="text-center py-4">
-                      <div className="text-green-600 font-medium mb-2">✅ Ready to downgrade to Free</div>
-                      <Button>Continue to Downgrade</Button>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <div className="text-orange-600 font-medium mb-2">
-                        ⚠️ Reduce usage before downgrading
-                      </div>
-                      <Button variant="outline">Manage Resources</Button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Loading downgrade requirements...
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
     </div>
   );
 }

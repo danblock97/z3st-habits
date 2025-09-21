@@ -261,3 +261,168 @@ export function canDowngradeToTier(
     },
   };
 }
+
+// Auto-cleanup resources when downgrading
+export async function autoCleanupResources(userId: string, newTier: EntitlementTier): Promise<void> {
+  const supabase = createServiceRoleClient();
+  const limits = getEntitlementLimits(newTier);
+
+  console.log(`Starting auto-cleanup for user ${userId} to ${newTier} tier`);
+
+  try {
+    // Get current usage
+    const usage = await getUserUsage(userId);
+
+    // 1. Clean up excess habits
+    if (limits.maxActiveHabits !== -1 && usage.habits > limits.maxActiveHabits) {
+      console.log(`Cleaning up excess habits: ${usage.habits - limits.maxActiveHabits} habits need to be removed`);
+
+      // Get all habits ordered by creation date (oldest first)
+      const { data: habits, error: habitsError } = await supabase
+        .from('habits')
+        .select('id, created_at')
+        .eq('owner_id', userId)
+        .eq('is_archived', false)
+        .order('created_at', { ascending: true });
+
+      if (habitsError) {
+        console.error('Error fetching habits for cleanup:', habitsError);
+      } else {
+        const excessHabits = habits?.slice(limits.maxActiveHabits) || [];
+
+        for (const habit of excessHabits) {
+          // Archive the habit instead of deleting (safer)
+          const { error: archiveError } = await supabase
+            .from('habits')
+            .update({ is_archived: true })
+            .eq('id', habit.id);
+
+          if (archiveError) {
+            console.error(`Error archiving habit ${habit.id}:`, archiveError);
+          } else {
+            console.log(`Archived habit ${habit.id}`);
+          }
+        }
+      }
+    }
+
+    // 2. Clean up excess groups
+    if (limits.maxGroups !== -1 && usage.groups > limits.maxGroups) {
+      console.log(`Cleaning up excess groups: ${usage.groups - limits.maxGroups} groups need to be removed`);
+
+      // Get all groups ordered by creation date (oldest first)
+      const { data: groups, error: groupsError } = await supabase
+        .from('groups')
+        .select('id, name, created_at')
+        .eq('owner_id', userId)
+        .order('created_at', { ascending: true });
+
+      if (groupsError) {
+        console.error('Error fetching groups for cleanup:', groupsError);
+      } else {
+        const excessGroups = groups?.slice(limits.maxGroups) || [];
+
+        for (const group of excessGroups) {
+          // Delete group and all related data (members, invites, etc.)
+          await deleteGroupCascade(supabase, group.id, userId);
+          console.log(`Deleted group ${group.name} (${group.id})`);
+        }
+      }
+    }
+
+    // 3. Clean up excess group members
+    if (limits.maxGroupMembers !== -1) {
+      // Get all groups and their member counts
+      const { data: groups, error: groupsError } = await supabase
+        .from('groups')
+        .select(`
+          id,
+          name,
+          group_members(count)
+        `)
+        .eq('owner_id', userId);
+
+      if (groupsError) {
+        console.error('Error fetching groups for member cleanup:', groupsError);
+      } else {
+        for (const group of groups || []) {
+          const memberCount = (group.group_members as unknown[]).length;
+
+          if (memberCount > limits.maxGroupMembers) {
+            console.log(`Cleaning up excess members in group ${group.name}: ${memberCount - limits.maxGroupMembers} members need to be removed`);
+
+            // Get members ordered by join date (oldest first)
+            const { data: members, error: membersError } = await supabase
+              .from('group_members')
+              .select('id, user_id, joined_at')
+              .eq('group_id', group.id)
+              .order('joined_at', { ascending: true });
+
+            if (membersError) {
+              console.error(`Error fetching members for group ${group.id}:`, membersError);
+            } else {
+              const excessMembers = members?.slice(limits.maxGroupMembers) || [];
+
+              for (const member of excessMembers) {
+                const { error: removeError } = await supabase
+                  .from('group_members')
+                  .delete()
+                  .eq('id', member.id);
+
+                if (removeError) {
+                  console.error(`Error removing member ${member.id} from group ${group.id}:`, removeError);
+                } else {
+                  console.log(`Removed member ${member.user_id} from group ${group.name}`);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    console.log(`✅ Auto-cleanup completed for user ${userId}`);
+  } catch (error) {
+    console.error('Error during auto-cleanup:', error);
+    throw error;
+  }
+}
+
+// Helper function to delete a group and all related data
+async function deleteGroupCascade(supabase: any, groupId: string, userId: string) {
+  try {
+    // 1. Delete invites
+    const { error: invitesError } = await supabase
+      .from('invites')
+      .delete()
+      .eq('group_id', groupId);
+
+    if (invitesError) {
+      console.error('Error deleting invites:', invitesError);
+    }
+
+    // 2. Delete group members
+    const { error: membersError } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', groupId);
+
+    if (membersError) {
+      console.error('Error deleting group members:', membersError);
+    }
+
+    // 3. Delete the group
+    const { error: groupError } = await supabase
+      .from('groups')
+      .delete()
+      .eq('id', groupId)
+      .eq('owner_id', userId);
+
+    if (groupError) {
+      console.error('Error deleting group:', groupError);
+    }
+
+  } catch (error) {
+    console.error(`Error in deleteGroupCascade for group ${groupId}:`, error);
+  }
+}

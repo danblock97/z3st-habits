@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
 
-import { updateUserEntitlements } from '@/lib/entitlements-server';
+import { updateUserEntitlements, autoCleanupResources } from '@/lib/entitlements-server';
 import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server';
 import type { EntitlementTier } from '@/lib/entitlements-server';
 
@@ -18,6 +18,12 @@ const PRICE_ID_TO_TIER: Record<string, EntitlementTier> = {
   [process.env.STRIPE_PRICE_ID_PRO_YEARLY!]: 'pro',
   [process.env.STRIPE_PRICE_ID_PLUS_MONTHLY!]: 'plus',
   [process.env.STRIPE_PRICE_ID_PLUS_YEARLY!]: 'plus',
+};
+
+// Map Stripe products to tiers (for when customers switch plans)
+const PRODUCT_ID_TO_TIER: Record<string, EntitlementTier> = {
+  [process.env.STRIPE_PRODUCT_ID_PRO!]: 'pro',
+  [process.env.STRIPE_PRODUCT_ID_PLUS!]: 'plus',
 };
 
 // Find user ID from Stripe customer ID
@@ -96,15 +102,22 @@ export async function POST(request: NextRequest) {
         console.log('Line items:', lineItems.data);
 
         const priceId = lineItems.data[0]?.price?.id;
-        if (!priceId) {
-          console.error('❌ No price ID found in checkout session line items');
+        const productId = lineItems.data[0]?.price?.product as string;
+
+        if (!priceId && !productId) {
+          console.error('❌ No price ID or product ID found in checkout session line items');
           break;
         }
-        console.log('✅ Found price ID:', priceId);
 
-        const tier = PRICE_ID_TO_TIER[priceId];
+        // Try to get tier from price ID first, then product ID
+        let tier = priceId ? PRICE_ID_TO_TIER[priceId] : null;
+        if (!tier && productId) {
+          tier = PRODUCT_ID_TO_TIER[productId];
+        }
+
         if (!tier) {
-          console.error('❌ Unknown price ID:', priceId, 'Available mappings:', PRICE_ID_TO_TIER);
+          console.error('❌ Unknown price ID:', priceId, 'or product ID:', productId);
+          console.log('Available mappings:', { PRICE_ID_TO_TIER, PRODUCT_ID_TO_TIER });
           break;
         }
         console.log('✅ Mapped to tier:', tier);
@@ -154,16 +167,23 @@ export async function POST(request: NextRequest) {
         console.log('Subscription updated:', subscription.id, subscription.status);
 
         if (subscription.status === 'active') {
-          // Get the price ID from the subscription items
+          // Get the price ID and product ID from the subscription items
           const priceId = subscription.items.data[0]?.price?.id;
-          if (!priceId) {
-            console.error('No price ID found in subscription');
+          const productId = subscription.items.data[0]?.price?.product as string;
+
+          if (!priceId && !productId) {
+            console.error('No price ID or product ID found in subscription');
             break;
           }
 
-          const tier = PRICE_ID_TO_TIER[priceId];
+          // Try to get tier from price ID first, then product ID
+          let tier = priceId ? PRICE_ID_TO_TIER[priceId] : null;
+          if (!tier && productId) {
+            tier = PRODUCT_ID_TO_TIER[productId];
+          }
+
           if (!tier) {
-            console.error('Unknown price ID in subscription:', priceId);
+            console.error('Unknown price ID:', priceId, 'or product ID:', productId);
             break;
           }
 
@@ -172,6 +192,14 @@ export async function POST(request: NextRequest) {
           const userId = await getUserIdFromCustomerId(customerId);
 
           if (userId) {
+            // Get current entitlements to check if this is a downgrade
+            const { fetchUserEntitlements } = await import('@/lib/entitlements-server');
+            const currentEntitlements = await fetchUserEntitlements(userId);
+
+            const tierHierarchy = { 'free': 0, 'pro': 1, 'plus': 2 };
+            const isDowngrade = currentEntitlements &&
+                              tierHierarchy[tier] < tierHierarchy[currentEntitlements.tier];
+
             const success = await updateUserEntitlements(userId, tier, {
               subscriptionId: subscription.id,
               customerId: customerId,
@@ -179,6 +207,17 @@ export async function POST(request: NextRequest) {
 
             if (success) {
               console.log(`Updated user ${userId} to tier ${tier}`);
+
+              // If this is a downgrade, trigger auto-cleanup
+              if (isDowngrade && currentEntitlements) {
+                console.log(`Downgrade detected: ${currentEntitlements.tier} -> ${tier}, triggering auto-cleanup`);
+                try {
+                  await autoCleanupResources(userId, tier);
+                  console.log(`✅ Auto-cleanup completed for user ${userId}`);
+                } catch (error) {
+                  console.error(`❌ Auto-cleanup failed for user ${userId}:`, error);
+                }
+              }
             } else {
               console.error(`Failed to update user ${userId} to tier ${tier}`);
             }
@@ -203,7 +242,13 @@ export async function POST(request: NextRequest) {
           const success = await updateUserEntitlements(userId, 'free', {}, true); // Use service role for webhooks
 
           if (success) {
-            console.log(`Downgraded user ${userId} to free tier`);
+            console.log(`Downgraded user ${userId} to free tier, triggering auto-cleanup`);
+            try {
+              await autoCleanupResources(userId, 'free');
+              console.log(`✅ Auto-cleanup completed for user ${userId}`);
+            } catch (error) {
+              console.error(`❌ Auto-cleanup failed for user ${userId}:`, error);
+            }
           } else {
             console.error(`Failed to downgrade user ${userId} to free tier`);
           }
