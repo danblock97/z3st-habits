@@ -81,8 +81,13 @@ export default async function MePage() {
     redirect('/app');
   }
 
-  const entitlements = await fetchUserEntitlements(session.user.id);
-  const limits = entitlements ? getEntitlementLimits(entitlements.tier) : getEntitlementLimits('free');
+  const rawEntitlements = await fetchUserEntitlements(session.user.id);
+  const entitlements = rawEntitlements || {
+    tier: 'free' as const,
+    source: {},
+    updatedAt: new Date().toISOString()
+  };
+  const limits = getEntitlementLimits(entitlements.tier);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">

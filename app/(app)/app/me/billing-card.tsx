@@ -13,11 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Crown, CreditCard, AlertTriangle } from 'lucide-react';
-import { formatLimit } from '@/lib/entitlements-server';
+import { formatLimit } from '@/lib/utils';
 
 interface BillingCardProps {
-  entitlements: any;
-  limits: any;
+  entitlements: { tier?: string; source?: Record<string, unknown>; [key: string]: unknown };
+  limits: { maxActiveHabits: number; maxGroups: number; [key: string]: unknown };
 }
 
 export function BillingCard({ entitlements, limits }: BillingCardProps) {
@@ -26,6 +26,13 @@ export function BillingCard({ entitlements, limits }: BillingCardProps) {
   const handleManageBilling = async () => {
     setIsLoading(true);
     try {
+      // For free tier users, go directly to pricing
+      if (entitlements?.tier === 'free') {
+        window.location.href = '/pricing';
+        return;
+      }
+
+      // For paid users, try to open billing portal
       const response = await fetch('/api/billing/portal', {
         method: 'POST',
         headers: {
@@ -33,6 +40,7 @@ export function BillingCard({ entitlements, limits }: BillingCardProps) {
         },
         body: JSON.stringify({
           returnUrl: `${window.location.origin}/app/me`,
+          customerId: entitlements?.source?.customerId,
         }),
       });
 
@@ -42,7 +50,11 @@ export function BillingCard({ entitlements, limits }: BillingCardProps) {
         window.location.href = data.url;
       } else {
         console.error('Failed to get portal URL:', data.error);
-        window.location.href = '/pricing';
+        if (data.redirectTo) {
+          window.location.href = data.redirectTo;
+        } else {
+          window.location.href = '/pricing';
+        }
       }
     } catch (error) {
       console.error('Error opening billing portal:', error);
@@ -94,7 +106,7 @@ export function BillingCard({ entitlements, limits }: BillingCardProps) {
             <AlertTriangle className="h-4 w-4 text-orange-600" />
             <AlertTitle>Downgrading Your Plan</AlertTitle>
             <AlertDescription className="text-orange-800">
-              If you downgrade to Pro or Free, we'll automatically remove excess habits, groups, and group members to fit your new plan limits.
+              If you downgrade to Pro or Free, we&apos;ll automatically remove excess habits, groups, and group members to fit your new plan limits.
               <br /><br />
               <strong>Oldest items will be removed first.</strong> We recommend reviewing your content before downgrading.
             </AlertDescription>
@@ -113,22 +125,15 @@ export function BillingCard({ entitlements, limits }: BillingCardProps) {
             {isLoading ? (
               <>
                 <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Loading Billing Portal...
+                Loading...
               </>
             ) : (
               <>
                 <CreditCard className="mr-2 h-4 w-4" />
-                Manage Billing & Subscription
+                {entitlements?.tier === 'free' ? 'Upgrade Plan' : 'Manage Billing & Subscription'}
               </>
             )}
           </Button>
-
-          {(entitlements?.tier === 'free' || entitlements?.tier === 'pro') && (
-            <Button size="lg" className="w-full">
-              <Crown className="mr-2 h-4 w-4" />
-              Upgrade Plan
-            </Button>
-          )}
         </div>
       </CardContent>
     </Card>

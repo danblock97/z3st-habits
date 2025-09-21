@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: NextRequest) {
   try {
-    const { returnUrl } = await request.json();
+    const { returnUrl, customerId } = await request.json();
 
     if (!returnUrl) {
       return NextResponse.json(
@@ -16,32 +16,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the user session
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // If no customer ID, redirect to pricing
+    if (!customerId) {
+      return NextResponse.json({
+        error: 'No subscription found',
+        redirectTo: '/pricing'
+      }, { status: 404 });
     }
 
-    const token = authHeader.substring(7);
-
-    // In a real app, you'd validate the session token and get the customer ID
-    // For now, we'll create a portal session without a specific customer
-    // This will show the customer portal for the authenticated user
-
+    // Create a customer portal session
     const session = await stripe.billingPortal.sessions.create({
       return_url: returnUrl,
-      // customer: customerId, // You'd get this from your user database
+      customer: customerId,
     });
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Error creating portal session:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+
+    // If customer is missing or other Stripe error, redirect to pricing
+    return NextResponse.json({
+      error: 'Billing portal not available',
+      redirectTo: '/pricing'
+    }, { status: 404 });
   }
 }

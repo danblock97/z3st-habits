@@ -6,6 +6,7 @@ export interface UserEntitlements {
   tier: EntitlementTier;
   source: Record<string, unknown>;
   updatedAt: string;
+  [key: string]: unknown;
 }
 
 export interface EntitlementLimits {
@@ -13,6 +14,7 @@ export interface EntitlementLimits {
   maxReminders: number;
   maxGroups: number;
   maxGroupMembers: number;
+  [key: string]: unknown;
 }
 
 export const TIER_LIMITS: Record<EntitlementTier, EntitlementLimits> = {
@@ -110,10 +112,6 @@ export function getEntitlementLimits(tier: EntitlementTier): EntitlementLimits {
   return TIER_LIMITS[tier];
 }
 
-// Helper function to format limits for display
-export function formatLimit(limit: number): string {
-  return limit === -1 ? 'Unlimited' : limit.toString();
-}
 
 // Check functions for server-side usage
 export function canCreateHabit(entitlements: UserEntitlements, currentCount: number): boolean {
@@ -389,7 +387,7 @@ export async function autoCleanupResources(userId: string, newTier: EntitlementT
 }
 
 // Helper function to delete a group and all related data
-async function deleteGroupCascade(supabase: any, groupId: string, userId: string) {
+async function deleteGroupCascade(supabase: ReturnType<typeof createServiceRoleClient>, groupId: string, userId: string) {
   try {
     // 1. Delete invites
     const { error: invitesError } = await supabase
