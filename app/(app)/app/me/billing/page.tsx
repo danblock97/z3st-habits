@@ -38,9 +38,46 @@ export default async function BillingPage() {
   const handleManageBilling = async () => {
     'use server';
 
-    // This would redirect to Stripe Customer Portal
-    // For now, just redirect to pricing
-    redirect('/pricing');
+    // Get the current user's Stripe customer ID from entitlements
+    const supabase = await createServerClient();
+    const { data: entitlements } = await supabase
+      .from('entitlements')
+      .select('source')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const customerId = entitlements?.source?.customerId as string;
+
+    if (customerId) {
+      // Call the portal API and redirect
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/billing/portal`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            returnUrl: '/app/me',
+            customerId: customerId,
+          }),
+        });
+
+        const { url, error } = await response.json();
+
+        if (url) {
+          redirect(url);
+        } else {
+          console.error('Failed to get portal URL:', error);
+          redirect('/pricing');
+        }
+      } catch (error) {
+        console.error('Error creating portal session:', error);
+        redirect('/pricing');
+      }
+    } else {
+      // If no customer ID, redirect to pricing to upgrade
+      redirect('/pricing');
+    }
   };
 
   return (

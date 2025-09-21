@@ -5,23 +5,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 });
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { returnUrl, customerId } = await request.json();
+    const { searchParams } = new URL(request.url);
+    const returnUrl = searchParams.get('returnUrl') || '/app/me';
+    const customerId = searchParams.get('customerId');
 
-    if (!returnUrl) {
+    if (!customerId) {
       return NextResponse.json(
-        { error: 'Missing return URL' },
+        { error: 'No customer ID provided' },
         { status: 400 }
       );
-    }
-
-    // If no customer ID, redirect to pricing
-    if (!customerId) {
-      return NextResponse.json({
-        error: 'No subscription found',
-        redirectTo: '/pricing'
-      }, { status: 404 });
     }
 
     // Create a customer portal session
@@ -33,11 +27,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Error creating portal session:', error);
+    return NextResponse.json(
+      { error: 'Failed to create billing portal session' },
+      { status: 500 }
+    );
+  }
+}
 
-    // If customer is missing or other Stripe error, redirect to pricing
-    return NextResponse.json({
-      error: 'Billing portal not available',
-      redirectTo: '/pricing'
-    }, { status: 404 });
+export async function POST(request: NextRequest) {
+  try {
+    const { returnUrl, customerId } = await request.json();
+
+    if (!returnUrl || !customerId) {
+      return NextResponse.json(
+        { error: 'Missing return URL or customer ID' },
+        { status: 400 }
+      );
+    }
+
+    // Create a customer portal session
+    const session = await stripe.billingPortal.sessions.create({
+      return_url: returnUrl,
+      customer: customerId,
+    });
+
+    return NextResponse.json({ url: session.url });
+  } catch (error) {
+    console.error('Error creating portal session:', error);
+    return NextResponse.json(
+      { error: 'Failed to create billing portal session' },
+      { status: 500 }
+    );
   }
 }

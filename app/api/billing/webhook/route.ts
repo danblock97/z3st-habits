@@ -27,15 +27,16 @@ const PRODUCT_ID_TO_TIER: Record<string, EntitlementTier> = {
 };
 
 // Find user ID from Stripe customer ID
+// Uses entitlements table as the single source of truth
 async function getUserIdFromCustomerId(customerId: string): Promise<string | null> {
-  const supabase = await createServerClient();
+  const supabase = createServiceRoleClient();
 
   console.log('🔍 Looking up customer ID:', customerId);
 
-  // Method 1: Direct JSON query (for JSONB columns)
+  // Method 1: Direct JSON query (primary method)
   const { data: entitlementsData, error: entitlementsError } = await supabase
     .from('entitlements')
-    .select('user_id, source')
+    .select('user_id, source, tier')
     .eq('source->>customerId', customerId)
     .maybeSingle();
 
@@ -44,10 +45,11 @@ async function getUserIdFromCustomerId(customerId: string): Promise<string | nul
   } else if (entitlementsData) {
     console.log('✅ Found user ID from entitlements:', entitlementsData.user_id);
     console.log('📋 Entitlements source:', entitlementsData.source);
+    console.log('🎯 User tier in DB:', entitlementsData.tier);
     return entitlementsData.user_id;
   }
 
-  // Method 2: Search through all entitlements and parse JSON strings
+  // Method 2: Search through all entitlements and parse JSON strings (fallback)
   console.log('🔍 Searching all entitlements for customer ID...');
   const { data: allEntitlements, error: allError } = await supabase
     .from('entitlements')
@@ -294,29 +296,11 @@ export async function POST(request: NextRequest) {
         }
         console.log('✅ Mapped to tier:', tier);
 
-        // Store Stripe customer ID in user's profile
+        // Store Stripe customer ID and subscription info in entitlements
         const customerId = session.customer as string;
         console.log('✅ Customer ID:', customerId);
 
-        const supabase = createServiceRoleClient();
-
-        // Try to update profile with customer ID, but don't fail if column doesn't exist
-        try {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({ stripe_customer_id: customerId })
-            .eq('id', userId);
-
-          if (profileError) {
-            console.log('⚠️ Could not update profile with customer ID (column may not exist):', profileError.message);
-          } else {
-            console.log('✅ Updated profile with customer ID');
-          }
-        } catch (error) {
-          console.log('⚠️ Error updating profile (column may not exist):', error);
-        }
-
-        // Update user entitlements (use service role for webhooks)
+        // Update user entitlements (entitlements table is the single source of truth)
         console.log('📝 Updating entitlements for user:', userId, 'to tier:', tier);
         const success = await updateUserEntitlements(userId, tier, {
           subscriptionId: session.subscription as string,
@@ -339,7 +323,7 @@ export async function POST(request: NextRequest) {
         console.log('Subscription updated:', subscription.id, subscription.status);
         console.log('Subscription items:', subscription.items.data);
 
-        if (subscription.status === 'active') {
+        if (subscription.status === 'active' || subscription.status === 'trialing') {
           // Get the price ID and product ID from the subscription items
           const priceId = subscription.items.data[0]?.price?.id;
           const productId = subscription.items.data[0]?.price?.product as string;
@@ -367,79 +351,72 @@ export async function POST(request: NextRequest) {
             break;
           }
 
-          // Get customer ID and try to update entitlements directly
+          console.log('=== SUBSCRIPTION UPDATE DEBUG ===');
+          console.log('Subscription ID:', subscription.id);
+          console.log('Subscription status:', subscription.status);
+          console.log('Target tier:', tier);
+
+          // Get customer ID and user ID
           const customerId = subscription.customer as string;
           console.log('Customer ID:', customerId);
 
-          // Try to update entitlements directly using customer ID
-          const supabase = await createServerClient();
-          const { data: updateResult, error: updateError } = await supabase
-            .from('entitlements')
-            .update({
-              tier: tier,
-              source: {
-                customerId: customerId,
-                subscriptionId: subscription.id
-              },
-              updated_at: new Date().toISOString()
-            })
-            .eq('source->>customerId', customerId)
-            .select('user_id, tier')
-            .maybeSingle();
+          // Find user ID from customer ID
+          const userId = await getUserIdFromCustomerId(customerId);
 
-          if (updateError) {
-            console.error('❌ Error updating entitlements:', updateError);
-            console.error('Error details:', {
-              message: updateError.message,
-              code: updateError.code,
-              details: updateError.details,
-              hint: updateError.hint
-            });
-          } else if (updateResult) {
-            console.log('✅ Successfully updated entitlements:', updateResult);
-            console.log(`🎯 Tier changed: ${updateResult.tier} → ${tier}`);
-            console.log(`👤 User ID: ${updateResult.user_id}`);
-          } else {
-            console.log('❌ No entitlements record found to update for customer ID:', customerId);
-            console.log('💡 This suggests the customer ID may not exist in the entitlements table');
+          if (!userId) {
+            console.error('❌ Could not find user ID for customer:', customerId);
+            console.log('💡 This suggests the customer ID is not linked to any user profile');
+            break;
           }
 
-          // Get current entitlements for downgrade check (after update)
-          const { data: entitlementsAfterUpdate } = await supabase
+          // Get existing entitlements before updating (for downgrade check)
+          const supabase = createServiceRoleClient();
+          const { data: existingEntitlements } = await supabase
             .from('entitlements')
             .select('tier, source')
-            .eq('source->>customerId', customerId)
+            .eq('user_id', userId)
             .maybeSingle();
 
-          if (entitlementsAfterUpdate) {
-            console.log('📊 Final entitlements after update:', entitlementsAfterUpdate);
+          console.log(`📊 Existing entitlements before update:`, existingEntitlements);
 
-            // Check if this is a downgrade
+          // Update user entitlements using the user ID
+          console.log('📝 Updating entitlements for user:', userId, 'to tier:', tier);
+          const success = await updateUserEntitlements(userId, tier, {
+            customerId: customerId,
+            subscriptionId: subscription.id
+          }, true); // Use service role for webhooks
+
+          if (success) {
+            console.log('✅ Successfully updated entitlements for user:', userId);
+          } else {
+            console.error('❌ Failed to update entitlements for user:', userId);
+          }
+
+          // Check if this is a downgrade and handle cleanup
+          console.log('📊 Checking for downgrade scenario...');
+
+          // Get current entitlements after update to check if we need cleanup
+          const { fetchUserEntitlements, autoCleanupResources } = await import('@/lib/entitlements-server');
+          const userEntitlements = await fetchUserEntitlements(userId);
+
+          if (userEntitlements) {
+            console.log('📊 Final entitlements after update:', userEntitlements);
+
+            // Check if this is a downgrade (compare old tier vs new tier)
             const tierHierarchy = { 'free': 0, 'pro': 1, 'plus': 2 } as const;
-            const isDowngrade = tierHierarchy[tier as keyof typeof tierHierarchy] < tierHierarchy[entitlementsAfterUpdate.tier as keyof typeof tierHierarchy];
+            const oldTierLevel = tierHierarchy[existingEntitlements?.tier as keyof typeof tierHierarchy] || 0;
+            const newTierLevel = tierHierarchy[tier as keyof typeof tierHierarchy];
+
+            const isDowngrade = newTierLevel < oldTierLevel;
 
             if (isDowngrade) {
-              console.log(`Downgrade detected: ${entitlementsAfterUpdate.tier} -> ${tier}, triggering auto-cleanup`);
+              console.log(`Downgrade detected: ${existingEntitlements?.tier || 'none'} -> ${tier}, triggering auto-cleanup`);
 
-              // Get user ID from the entitlements record (we need to fetch it again with user_id)
-              const { data: userEntitlementsRecord } = await supabase
-                .from('entitlements')
-                .select('user_id')
-                .eq('source->>customerId', customerId)
-                .maybeSingle();
-
-              if (userEntitlementsRecord?.user_id) {
-                const { fetchUserEntitlements, autoCleanupResources } = await import('@/lib/entitlements-server');
-                const userEntitlements = await fetchUserEntitlements(userEntitlementsRecord.user_id);
-
-                if (userEntitlements) {
-                  try {
-                    await autoCleanupResources(userEntitlementsRecord.user_id, tier);
-                    console.log(`✅ Auto-cleanup completed for user ${userEntitlementsRecord.user_id}`);
-                  } catch (error) {
-                    console.error(`❌ Auto-cleanup failed for user ${userEntitlementsRecord.user_id}:`, error);
-                  }
-                }
+              try {
+                await autoCleanupResources(userId, tier);
+                console.log(`✅ Auto-cleanup completed for user ${userId}`);
+              } catch (error) {
+                console.error(`❌ Auto-cleanup failed for user ${userId}:`, error);
               }
             }
           }
