@@ -10,6 +10,7 @@ import {
   type StreakEntry,
 } from '@/lib/streak';
 import { createServerClient } from '@/lib/supabase/server';
+import { fetchUserEntitlements, getEntitlementLimits } from '@/lib/entitlements-server';
 
 import { habitFormInitialState, type HabitFormState } from './form-state';
 import type { HabitCadence, HabitSummary } from './types';
@@ -117,6 +118,29 @@ export async function createHabit(
   }
 
   const userId = session.user.id;
+
+  // Check entitlements before proceeding
+  const entitlements = await fetchUserEntitlements(userId);
+  const { data: habitCount } = await supabase
+    .from('habits')
+    .select('id', { count: 'exact' })
+    .eq('owner_id', userId)
+    .eq('is_archived', false);
+
+  if (!canCreateHabit(entitlements, habitCount?.length ?? 0)) {
+    const upgradeMessage = entitlements?.tier === 'free'
+      ? 'You\'ve reached your free tier limit of 3 habits. Upgrade to Pro for more habits!'
+      : 'You\'ve reached your current tier limit. Upgrade to Plus for unlimited habits!';
+
+    return {
+      ...habitFormInitialState,
+      status: 'error',
+      message: upgradeMessage,
+      fieldErrors: {
+        title: 'Upgrade required to create more habits',
+      },
+    };
+  }
 
   const { data: profile } = await supabase
     .from('profiles')

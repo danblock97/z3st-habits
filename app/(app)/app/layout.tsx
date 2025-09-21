@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { createServerClient } from '@/lib/supabase/server';
+import { Crown } from 'lucide-react';
 
 import { AppMobileNav, AppTabs } from './app-navigation';
 
@@ -12,6 +13,7 @@ const APP_NAV_ITEMS = [
   { href: '/app/habits', label: 'Habits', iconName: 'ListChecks' },
   { href: '/app/groups', label: 'Groups', iconName: 'Users' },
   { href: '/app/me', label: 'Me', iconName: 'UserRound' },
+  { href: '/pricing', label: 'Upgrade', iconName: 'Crown' },
 ];
 
 export default async function AppLayout({ children }: AppLayoutProps) {

@@ -8,7 +8,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Crown, CreditCard } from 'lucide-react';
 import { createServerClient } from '@/lib/supabase/server';
+import { fetchUserEntitlements, getEntitlementLimits, formatLimit } from '@/lib/entitlements-server';
 
 import { ProfileForm } from './profile-form';
 
@@ -78,6 +82,9 @@ export default async function MePage() {
     redirect('/app');
   }
 
+  const entitlements = await fetchUserEntitlements(session.user.id);
+  const limits = entitlements ? getEntitlementLimits(entitlements.tier) : getEntitlementLimits('free');
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
       <div>
@@ -86,18 +93,76 @@ export default async function MePage() {
           Tailor how your identity shows up across Z3st. We auto-detected your timezone, but you can update it anytime.
         </p>
       </div>
-      <Card className="border-border/60 bg-background/95 shadow-sm">
-        <CardHeader className="space-y-1">
-          <CardTitle>Account basics</CardTitle>
-          <CardDescription>
-            Pick a handle, preferred timezone, and optional emoji flair.
-          </CardDescription>
-        </CardHeader>
-        <Separator className="mx-6" />
-        <CardContent className="pt-6">
-          <ProfileForm profile={ensuredProfile} />
-        </CardContent>
-      </Card>
+
+      <div className="grid gap-8 lg:grid-cols-2">
+        <Card className="border-border/60 bg-background/95 shadow-sm">
+          <CardHeader className="space-y-1">
+            <CardTitle>Account basics</CardTitle>
+            <CardDescription>
+              Pick a handle, preferred timezone, and optional emoji flair.
+            </CardDescription>
+          </CardHeader>
+          <Separator className="mx-6" />
+          <CardContent className="pt-6">
+            <ProfileForm profile={ensuredProfile} />
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60 bg-background/95 shadow-sm">
+          <CardHeader className="space-y-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-primary" />
+                  Subscription
+                </CardTitle>
+                <CardDescription>
+                  Current plan and usage limits
+                </CardDescription>
+              </div>
+              <Badge variant={entitlements?.tier === 'free' ? 'secondary' : 'default'} className="capitalize">
+                {entitlements?.tier || 'Free'}
+              </Badge>
+            </div>
+          </CardHeader>
+          <Separator className="mx-6" />
+          <CardContent className="pt-6 space-y-4">
+            <div className="grid gap-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Habits</span>
+                <span className="font-medium">
+                  {formatLimit(limits.maxActiveHabits)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Reminders</span>
+                <span className="font-medium">
+                  {formatLimit(limits.maxReminders)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Groups</span>
+                <span className="font-medium">
+                  {formatLimit(limits.maxGroups)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Manage Billing
+              </Button>
+              {(entitlements?.tier === 'free' || entitlements?.tier === 'pro') && (
+                <Button size="sm" className="flex-1">
+                  <Crown className="mr-2 h-4 w-4" />
+                  Upgrade
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

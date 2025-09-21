@@ -37,10 +37,12 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { checkStreakRisk } from "@/lib/streak-risk";
+import { useEntitlements } from "@/lib/entitlements";
 
 import { completeHabitToday, createHabit } from "./actions";
 import { habitFormInitialState } from "./form-state";
 import type { HabitCadence, HabitSummary } from "./types";
+import { GoPlusModal } from "@/components/ui/go-plus-modal";
 
 type HabitListItem = HabitSummary & { isOptimistic?: boolean };
 
@@ -164,6 +166,10 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
 
   const [pendingCheckins, setPendingCheckins] = useState<Record<string, boolean>>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [upsellFeature, setUpsellFeature] = useState<string | undefined>();
+
+  const entitlements = useEntitlements();
 
   // Streak risk detection
   const streakRisk = useMemo(() => {
@@ -278,6 +284,12 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
         timezone={timezone}
         onOptimisticAdd={handleOptimisticAdd}
         onOptimisticRemove={handleOptimisticRemove}
+      />
+
+      <GoPlusModal
+        open={showUpsellModal}
+        onOpenChange={setShowUpsellModal}
+        feature={upsellFeature}
       />
     </section>
   );
@@ -458,6 +470,15 @@ function NewHabitDialog({
   useEffect(() => {
     setEmoji(defaultEmoji || "🍋");
   }, [defaultEmoji]);
+
+  // Handle upgrade errors
+  useEffect(() => {
+    if (formState.status === "error" && formState.message?.includes("Upgrade")) {
+      setUpsellFeature("habit");
+      setShowUpsellModal(true);
+      setIsDialogOpen(false);
+    }
+  }, [formState.status, formState.message]);
 
   useEffect(() => {
     if (!open) {
