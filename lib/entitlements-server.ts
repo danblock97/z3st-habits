@@ -78,7 +78,18 @@ export async function updateUserEntitlements(
     // Use service role client for webhook operations to bypass RLS
     const supabase = useServiceRole ? createServiceRoleClient() : await createServerClient();
 
-    console.log(`Updating entitlements for user ${userId} to tier ${tier} using service role: ${useServiceRole}`);
+    console.log(`🔄 Updating entitlements for user ${userId} to tier ${tier}`);
+    console.log(`📋 Source data:`, source);
+    console.log(`🛡️ Using service role: ${useServiceRole}`);
+
+    // First check if user already has entitlements
+    const { data: existingEntitlements } = await supabase
+      .from('entitlements')
+      .select('tier, source')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    console.log(`📊 Existing entitlements:`, existingEntitlements);
 
     const { error } = await supabase
       .from('entitlements')
@@ -90,7 +101,7 @@ export async function updateUserEntitlements(
       });
 
     if (error) {
-      console.error('Error updating entitlements:', error);
+      console.error('❌ Error updating entitlements:', error);
       console.error('Error details:', {
         message: error.message,
         code: error.code,
@@ -100,10 +111,19 @@ export async function updateUserEntitlements(
       return false;
     }
 
-    console.log(`✅ Successfully updated entitlements for user ${userId} to tier ${tier}`);
+    // Verify the update worked
+    const { data: updatedEntitlements } = await supabase
+      .from('entitlements')
+      .select('tier, source, updated_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    console.log(`✅ Database updated successfully:`, updatedEntitlements);
+    console.log(`🎯 Tier change: ${existingEntitlements?.tier || 'none'} → ${tier}`);
+
     return true;
   } catch (error) {
-    console.error('Exception updating entitlements:', error);
+    console.error('❌ Exception updating entitlements:', error);
     return false;
   }
 }

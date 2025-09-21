@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, Crown, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const FREE_FEATURES = [
   "Up to 3 habits",
@@ -42,6 +43,106 @@ const PLUS_FEATURES = [
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentTier, setCurrentTier] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserTier = async () => {
+      try {
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) return;
+
+        const response = await fetch('/api/test-entitlements');
+        const data = await response.json();
+        setCurrentTier(data.currentEntitlements?.tier || 'free');
+      } catch (error) {
+        console.error('Error fetching user tier:', error);
+        setCurrentTier('free');
+      }
+    };
+
+    fetchUserTier();
+  }, []);
+
+  const renderPlanButton = (targetTier: string, planType: string) => {
+    if (currentTier === targetTier) {
+      return (
+        <div className="space-y-2">
+          <Button variant="outline" className="w-full" size="lg" disabled>
+            Current Plan
+          </Button>
+          <Alert className="border-blue-200 bg-blue-50">
+            <AlertDescription className="text-blue-800 text-sm">
+              To upgrade or manage your subscription, visit{' '}
+              <a href="/app/me" className="font-medium underline hover:no-underline">
+                your account settings
+              </a>
+              {' '}for proper prorated billing.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    // If user is on Pro, don't allow direct upgrade to Plus from pricing page
+    if (currentTier === 'pro' && targetTier === 'plus') {
+      return (
+        <div className="space-y-2">
+          <Button variant="outline" className="w-full" size="lg" disabled>
+            Upgrade to Plus
+          </Button>
+          <Alert className="border-blue-200 bg-blue-50">
+            <AlertDescription className="text-blue-800 text-sm">
+              To upgrade from Pro to Plus, visit{' '}
+              <a href="/app/me" className="font-medium underline hover:no-underline">
+                your account settings
+              </a>
+              {' '}for proper prorated billing.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    // If user is on Plus, don't allow downgrade to Pro from pricing page
+    if (currentTier === 'plus' && targetTier === 'pro') {
+      return (
+        <div className="space-y-2">
+          <Button variant="outline" className="w-full" size="lg" disabled>
+            Downgrade to Pro
+          </Button>
+          <Alert className="border-blue-200 bg-blue-50">
+            <AlertDescription className="text-blue-800 text-sm">
+              To change your subscription, visit{' '}
+              <a href="/app/me" className="font-medium underline hover:no-underline">
+                your account settings
+              </a>
+              {' '}for proper prorated billing.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    const isUpgrade = currentTier === 'free' && targetTier === 'pro';
+    const buttonText = isUpgrade ? 'Upgrade to Pro' : 'Upgrade to Plus';
+
+    return (
+      <Button
+        className={`w-full ${targetTier === 'pro'
+          ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+          : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
+        }`}
+        size="lg"
+        onClick={() => handleSubscribe(planType)}
+        disabled={isLoading}
+      >
+        {isLoading ? 'Processing...' : buttonText}
+      </Button>
+    );
+  };
 
   const handleSubscribe = async (planType: string) => {
     setIsLoading(true);
@@ -211,14 +312,7 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Button
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-                size="lg"
-                onClick={() => handleSubscribe(isYearly ? 'pro-yearly' : 'pro-monthly')}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Processing...' : 'Upgrade to Pro'}
-              </Button>
+              {renderPlanButton('pro', isYearly ? 'pro-yearly' : 'pro-monthly')}
               <p className="text-xs text-center text-muted-foreground">
                 Cancel anytime • No setup fees
               </p>
@@ -259,14 +353,7 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Button
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                size="lg"
-                onClick={() => handleSubscribe(isYearly ? 'plus-yearly' : 'plus-monthly')}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Processing...' : 'Upgrade to Plus'}
-              </Button>
+              {renderPlanButton('plus', isYearly ? 'plus-yearly' : 'plus-monthly')}
               <p className="text-xs text-center text-muted-foreground">
                 Cancel anytime • No setup fees
               </p>

@@ -13,9 +13,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Add some debugging
     console.log('=== SIMULATING WEBHOOK PROCESSING ===');
     console.log(`User ID: ${userId}`);
     console.log(`Tier: ${tier}`);
+    console.log(`Timestamp: ${new Date().toISOString()}`);
 
     // Check if user exists in auth.users
     const supabase = createServiceRoleClient();
