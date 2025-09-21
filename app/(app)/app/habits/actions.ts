@@ -10,7 +10,7 @@ import {
   type StreakEntry,
 } from '@/lib/streak';
 import { createServerClient } from '@/lib/supabase/server';
-import { fetchUserEntitlements, getEntitlementLimits, canCreateHabit } from '@/lib/entitlements-server';
+import { fetchUserEntitlements, canCreateHabit } from '@/lib/entitlements-server';
 
 import { habitFormInitialState, type HabitFormState } from './form-state';
 import type { HabitCadence, HabitSummary } from './types';
@@ -384,5 +384,79 @@ export async function completeHabitToday(params: { habitId: string }): Promise<C
     periodCount,
     currentStreak: streak.current,
     longestStreak: streak.longest,
+  };
+}
+
+type DeleteHabitResult =
+  | { success: true; message: string }
+  | { success: false; message: string };
+
+export async function deleteHabit(habitId: string): Promise<DeleteHabitResult> {
+  const supabase = await createServerClient();
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    return {
+      success: false,
+      message: 'You must be signed in to delete habits.',
+    };
+  }
+
+  const userId = session.user.id;
+
+  // Check if user owns the habit
+  const { data: habit, error: habitError } = await supabase
+    .from('habits')
+    .select('id, title, owner_id')
+    .eq('id', habitId)
+    .eq('owner_id', userId)
+    .maybeSingle();
+
+  if (habitError || !habit) {
+    return {
+      success: false,
+      message: 'Habit not found or you do not have permission to delete it.',
+    };
+  }
+
+  // Delete in the correct order to handle foreign key constraints
+  // 1. Delete checkins
+  const { error: checkinsError } = await supabase
+    .from('checkins')
+    .delete()
+    .eq('habit_id', habitId)
+    .eq('user_id', userId);
+
+  if (checkinsError) {
+    console.error('Error deleting habit checkins:', checkinsError);
+    return {
+      success: false,
+      message: 'Could not delete habit checkins.',
+    };
+  }
+
+  // 2. Delete the habit
+  const { error: deleteError } = await supabase
+    .from('habits')
+    .delete()
+    .eq('id', habitId)
+    .eq('owner_id', userId);
+
+  if (deleteError) {
+    console.error('Error deleting habit:', deleteError);
+    return {
+      success: false,
+      message: 'Could not delete the habit.',
+    };
+  }
+
+  revalidatePath('/app/habits');
+
+  return {
+    success: true,
+    message: `Habit "${habit.title}" has been deleted.`,
   };
 }

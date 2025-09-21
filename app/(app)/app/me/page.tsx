@@ -16,7 +16,6 @@ import { fetchUserEntitlements, getEntitlementLimits, formatLimit, getUserUsage,
 import { getCurrentUsage, checkDowngradeRequirements } from './actions';
 
 import { ProfileForm } from './profile-form';
-import { DowngradeModal } from '@/components/ui/go-plus-modal';
 
 export default async function MePage() {
   const supabase = await createServerClient();
@@ -309,17 +308,6 @@ export default async function MePage() {
         </div>
       )}
 
-      {/* Downgrade Modal */}
-      <DowngradeModal
-        open={false} // This will be controlled by state
-        onOpenChange={() => {}} // This will be controlled by state
-        currentTier={entitlements?.tier || 'plus'}
-        targetTier="pro"
-        onConfirmDowngrade={() => {
-          // Redirect to billing management or Stripe
-          window.location.href = '/app/me/billing';
-        }}
-      />
     </div>
   );
 }

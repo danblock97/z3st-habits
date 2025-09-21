@@ -395,3 +395,91 @@ export async function removeMember(groupId: string, memberId: string) {
     message: 'Member removed from group.',
   };
 }
+
+export async function deleteGroup(groupId: string) {
+  const supabase = await createServerClient();
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    return {
+      success: false,
+      message: 'You must be signed in to delete groups.',
+    };
+  }
+
+  const userId = session.user.id;
+
+  // Check if user is the owner of the group
+  const { data: group, error: groupError } = await supabase
+    .from('groups')
+    .select('id, name, owner_id')
+    .eq('id', groupId)
+    .maybeSingle();
+
+  if (groupError || !group) {
+    return {
+      success: false,
+      message: 'Group not found.',
+    };
+  }
+
+  if (group.owner_id !== userId) {
+    return {
+      success: false,
+      message: 'You do not have permission to delete this group.',
+    };
+  }
+
+  // Delete in the correct order to handle foreign key constraints
+  // 1. Delete invites
+  const { error: invitesError } = await supabase
+    .from('invites')
+    .delete()
+    .eq('group_id', groupId);
+
+  if (invitesError) {
+    console.error('Error deleting invites:', invitesError);
+    return {
+      success: false,
+      message: 'Could not delete group invites.',
+    };
+  }
+
+  // 2. Delete group members
+  const { error: membersError } = await supabase
+    .from('group_members')
+    .delete()
+    .eq('group_id', groupId);
+
+  if (membersError) {
+    console.error('Error deleting group members:', membersError);
+    return {
+      success: false,
+      message: 'Could not delete group members.',
+    };
+  }
+
+  // 3. Delete the group
+  const { error: groupDeleteError } = await supabase
+    .from('groups')
+    .delete()
+    .eq('id', groupId);
+
+  if (groupDeleteError) {
+    console.error('Error deleting group:', groupDeleteError);
+    return {
+      success: false,
+      message: 'Could not delete the group.',
+    };
+  }
+
+  revalidatePath('/app/groups');
+
+  return {
+    success: true,
+    message: `Group "${group.name}" has been deleted.`,
+  };
+}

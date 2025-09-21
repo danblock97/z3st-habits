@@ -12,7 +12,7 @@ import {
   type FormEvent,
 } from "react";
 import { useFormStatus } from "react-dom";
-import { AlertTriangle, CalendarClock, Check, CircleDot, ListChecks, Plus, Sparkles } from "lucide-react";
+import { AlertTriangle, CalendarClock, CircleDot, ListChecks, Plus, Sparkles, Trash2 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 import { checkStreakRisk } from "@/lib/streak-risk";
 import { useEntitlements } from "@/lib/entitlements";
 
-import { completeHabitToday, createHabit } from "./actions";
+import { completeHabitToday, createHabit, deleteHabit } from "./actions";
 import { habitFormInitialState } from "./form-state";
 import type { HabitCadence, HabitSummary } from "./types";
 import { GoPlusModal } from "@/components/ui/go-plus-modal";
@@ -168,6 +168,9 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [upsellFeature, setUpsellFeature] = useState<string | undefined>();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [habitToDelete, setHabitToDelete] = useState<HabitListItem | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const entitlements = useEntitlements();
 
@@ -214,7 +217,6 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
       }
 
       const originalCount = habit.todayCount;
-      const wasIncomplete = originalCount < habit.targetPerPeriod;
 
       handleOptimisticIncrement(habit.id);
       setPendingCheckins((prev) => ({ ...prev, [habit.id]: true }));
@@ -241,6 +243,49 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
   );
 
   const hasHabits = sortedHabits.length > 0;
+
+  const handleDeleteHabit = (habit: HabitListItem) => {
+    setHabitToDelete(habit);
+    setShowDeleteDialog(true);
+    setDeleteError(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!habitToDelete) return;
+
+    // Optimistically remove the habit
+    handleOptimisticRemove(habitToDelete.id);
+
+    try {
+      const result = await deleteHabit(habitToDelete.id);
+
+      if (result.success) {
+        setShowDeleteDialog(false);
+        setHabitToDelete(null);
+        // The page will revalidate automatically
+      } else {
+        setDeleteError(result.message || 'Could not delete the habit.');
+        // Re-add the habit if deletion failed
+        const habitToReAdd: HabitListItem = {
+          ...habitToDelete,
+          isOptimistic: false,
+        };
+        startTransition(() => {
+          sendOptimistic({ type: "add", habit: habitToReAdd });
+        });
+      }
+    } catch {
+      setDeleteError('Could not delete the habit.');
+      // Re-add the habit if deletion failed
+      const habitToReAdd: HabitListItem = {
+        ...habitToDelete,
+        isOptimistic: false,
+      };
+      startTransition(() => {
+        sendOptimistic({ type: "add", habit: habitToReAdd });
+      });
+    }
+  };
 
   return (
     <section className="space-y-10">
@@ -276,6 +321,7 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
         <HabitGrid
           habits={sortedHabits}
           onCheckIn={handleTodayClick}
+          onDeleteHabit={handleDeleteHabit}
           pendingCheckins={pendingCheckins}
           habitRefs={habitRefs}
         />
@@ -300,6 +346,37 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
         feature={upsellFeature}
         targetPlan={targetPlan}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Habit</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &ldquo;{habitToDelete?.title}&rdquo;? This action cannot be undone and will remove all check-ins and progress history.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={false} // Don't disable cancel during optimistic updates
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={false} // Don't disable confirm during optimistic updates
+            >
+              Delete Habit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
@@ -307,11 +384,13 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
 function HabitGrid({
   habits,
   onCheckIn,
+  onDeleteHabit,
   pendingCheckins,
   habitRefs,
 }: {
   habits: HabitListItem[];
   onCheckIn: (habit: HabitListItem) => void;
+  onDeleteHabit: (habit: HabitListItem) => void;
   pendingCheckins: Record<string, boolean>;
   habitRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
 }) {
@@ -398,6 +477,18 @@ function HabitGrid({
               {pendingCheckins[habit.id] ? 'Logging…' : 'Today'}
             </Button>
           </CardContent>
+          <div className="border-t bg-muted/30 p-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-destructive hover:text-destructive"
+              onClick={() => onDeleteHabit(habit)}
+              disabled={habit.isOptimistic}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Habit
+            </Button>
+          </div>
         </Card>
       ))}
     </div>

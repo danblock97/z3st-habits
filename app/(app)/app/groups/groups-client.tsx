@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
-import { CalendarClock, Copy, Plus, Sparkles, UsersRound } from "lucide-react";
+import { CalendarClock, Copy, Plus, Sparkles, Trash2, UsersRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import { GoPlusModal } from "@/components/ui/go-plus-modal";
 import { useEntitlements } from "@/lib/entitlements";
 
-import { createGroup, createInvite } from "./actions";
+import { createGroup, createInvite, deleteGroup } from "./actions";
 import { groupFormInitialState, type GroupFormState } from "./form-state";
 import type { GroupSummary } from "./types";
 
@@ -45,6 +45,9 @@ export function GroupsClient({ groups }: GroupsClientProps) {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [upsellFeature, setUpsellFeature] = useState<string | undefined>();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<GroupSummary | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const entitlements = useEntitlements();
 
@@ -94,6 +97,28 @@ export function GroupsClient({ groups }: GroupsClientProps) {
         console.error('Failed to copy: ', err);
       }
     }
+  };
+
+  const handleDeleteGroup = (group: GroupSummary) => {
+    setGroupToDelete(group);
+    setShowDeleteDialog(true);
+    setDeleteError(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!groupToDelete) return;
+
+    startTransition(async () => {
+      const result = await deleteGroup(groupToDelete.id);
+
+      if (result.success) {
+        setShowDeleteDialog(false);
+        setGroupToDelete(null);
+        // The page will revalidate automatically
+      } else {
+        setDeleteError(result.message || 'Could not delete the group.');
+      }
+    });
   };
 
   return (
@@ -150,7 +175,7 @@ export function GroupsClient({ groups }: GroupsClientProps) {
         </Dialog>
       </header>
 
-      {hasGroups ? <GroupGrid groups={groups} onCreateInvite={handleCreateInvite} /> : <EmptyGroupsState />}
+      {hasGroups ? <GroupGrid groups={groups} onCreateInvite={handleCreateInvite} onDeleteGroup={handleDeleteGroup} /> : <EmptyGroupsState />}
 
       {/* Invite Dialog */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
@@ -198,11 +223,42 @@ export function GroupsClient({ groups }: GroupsClientProps) {
         feature={upsellFeature}
         targetPlan={targetPlan}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Group</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &ldquo;{groupToDelete?.name}&rdquo;? This action cannot be undone and will remove all members and invites.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive">{deleteError}</p>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isPending}
+            >
+              {isPending ? 'Deleting...' : 'Delete Group'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
 
-function GroupGrid({ groups, onCreateInvite }: { groups: GroupSummary[]; onCreateInvite: (groupId: string) => void }) {
+function GroupGrid({ groups, onCreateInvite, onDeleteGroup }: { groups: GroupSummary[]; onCreateInvite: (groupId: string) => void; onDeleteGroup: (group: GroupSummary) => void }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {groups.map((group) => (
@@ -239,20 +295,36 @@ function GroupGrid({ groups, onCreateInvite }: { groups: GroupSummary[]; onCreat
             </div>
           </CardContent>
             <div className="border-t bg-muted/30 p-4">
-              {(group.role === 'owner' || group.role === 'admin') && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onCreateInvite(group.id);
-                  }}
-                >
-                  <UsersRound className="mr-2 h-4 w-4" />
-                  Create Invite Link
-                </Button>
-              )}
+              <div className="space-y-2">
+                {(group.role === 'owner' || group.role === 'admin') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onCreateInvite(group.id);
+                    }}
+                  >
+                    <UsersRound className="mr-2 h-4 w-4" />
+                    Create Invite Link
+                  </Button>
+                )}
+                {group.role === 'owner' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-destructive hover:text-destructive"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onDeleteGroup(group);
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Group
+                  </Button>
+                )}
+              </div>
             </div>
           </Link>
         </Card>
@@ -265,8 +337,6 @@ function EmptyGroupsState() {
   const [state, setState] = useState<GroupFormState>(groupFormInitialState);
   const [isPending, startTransition] = useTransition();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [showUpsellModal, setShowUpsellModal] = useState(false);
-  const [upsellFeature, setUpsellFeature] = useState<string | undefined>();
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
@@ -276,10 +346,6 @@ function EmptyGroupsState() {
       if (result.status === 'success' && result.group) {
         setIsDialogOpen(false);
         // The page will revalidate and show the new group
-      } else if (result.status === 'error' && result.message?.includes('plan limit')) {
-        // Show upsell modal for plan limit errors
-        setUpsellFeature('group');
-        setShowUpsellModal(true);
       }
     });
   };
@@ -351,7 +417,7 @@ function EmptyGroupsState() {
 
 function formatDate(value: string) {
   try {
-    return new Date(value).toLocaleDateString('en-US');
+    return new Date(value).toLocaleDateString('en-GB');
   } catch {
     return value;
   }
