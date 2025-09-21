@@ -171,6 +171,12 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
 
   const entitlements = useEntitlements();
 
+  // Determine target plan based on current tier
+  const targetPlan = useMemo(() => {
+    if (!entitlements) return 'pro'; // Default to pro if entitlements not loaded
+    return entitlements.tier === 'free' ? 'pro' : 'plus';
+  }, [entitlements]);
+
   // Streak risk detection
   const streakRisk = useMemo(() => {
     return checkStreakRisk(optimisticHabits);
@@ -292,6 +298,7 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
         open={showUpsellModal}
         onOpenChange={setShowUpsellModal}
         feature={upsellFeature}
+        targetPlan={targetPlan}
       />
     </section>
   );

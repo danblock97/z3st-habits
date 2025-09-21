@@ -4,7 +4,7 @@ export type EntitlementTier = 'free' | 'pro' | 'plus';
 
 export interface UserEntitlements {
   tier: EntitlementTier;
-  source: Record<string, any>;
+  source: Record<string, unknown>;
   updatedAt: string;
 }
 
@@ -69,7 +69,7 @@ export async function fetchUserEntitlements(userId: string): Promise<UserEntitle
 export async function updateUserEntitlements(
   userId: string,
   tier: EntitlementTier,
-  source: Record<string, any> = {},
+  source: Record<string, unknown> = {},
   useServiceRole: boolean = false
 ): Promise<boolean> {
   try {

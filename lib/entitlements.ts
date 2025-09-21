@@ -6,9 +6,9 @@ import type { UserEntitlements } from './entitlements-server';
 
 // Client-side hook for components that need entitlements
 export function useEntitlements(): UserEntitlements | null {
-  // This will be used by the client components
   // For now, return a default free tier
   // This will be updated when we have the actual entitlement fetching logic
+  // TODO: Implement actual API call to fetch user entitlements
   return {
     tier: 'free',
     source: {},

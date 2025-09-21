@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid';
 import { z } from 'zod';
 
 import { createServerClient } from '@/lib/supabase/server';
+import { fetchUserEntitlements, canCreateGroup, getEntitlementLimits } from '@/lib/entitlements-server';
 
 import { groupFormInitialState, type GroupFormState } from './form-state';
 import type { GroupSummary } from './types';
@@ -81,6 +82,47 @@ export async function createGroup(
   }
 
   const userId = session.user.id;
+
+  // Check entitlements before creating group
+  const entitlements = await fetchUserEntitlements(userId);
+  if (!entitlements) {
+    return {
+      ...groupFormInitialState,
+      status: 'error',
+      message: 'Could not verify your account entitlements. Please try again.',
+    };
+  }
+
+  // Get current group count for this user
+  const { data: currentGroups, error: countError } = await supabase
+    .from('groups')
+    .select('id')
+    .eq('owner_id', userId);
+
+  if (countError) {
+    console.error('Error counting user groups:', countError);
+    return {
+      ...groupFormInitialState,
+      status: 'error',
+      message: 'Could not verify your group limits. Please try again.',
+    };
+  }
+
+  const groupCount = currentGroups?.length || 0;
+
+  // Check if user can create another group
+  if (!canCreateGroup(entitlements, groupCount)) {
+    const limits = getEntitlementLimits(entitlements.tier);
+    const limitMessage = limits.maxGroups === -1
+      ? 'unlimited groups'
+      : `${limits.maxGroups} groups`;
+
+    return {
+      ...groupFormInitialState,
+      status: 'error',
+      message: `You've reached your ${entitlements.tier} plan limit of ${limitMessage}. Upgrade to create more groups.`,
+    };
+  }
 
   // Create group and membership in a transaction
   console.log('Creating group for user:', userId, 'with name:', parsed.data.name);

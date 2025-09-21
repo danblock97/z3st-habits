@@ -101,16 +101,19 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json({ sessionId: session.id, url: session.url });
-    } catch (stripeError: any) {
-      console.error('Stripe error details:', {
-        type: stripeError.type,
-        code: stripeError.code,
-        message: stripeError.message,
-        param: stripeError.param,
-        requestId: stripeError.requestId
-      });
+    } catch (stripeError: unknown) {
+      const errorDetails = stripeError && typeof stripeError === 'object' && stripeError !== null
+        ? {
+            type: 'type' in stripeError ? stripeError.type : undefined,
+            code: 'code' in stripeError ? stripeError.code : undefined,
+            message: 'message' in stripeError ? stripeError.message : undefined,
+            param: 'param' in stripeError ? stripeError.param : undefined,
+          }
+        : { message: String(stripeError) };
+
+      console.error('Stripe error details:', errorDetails);
       return NextResponse.json(
-        { error: 'Stripe error', details: stripeError.message },
+        { error: 'Stripe error', details: errorDetails.message },
         { status: 400 }
       );
     }

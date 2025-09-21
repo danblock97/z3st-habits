@@ -312,7 +312,7 @@ export default function PricingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Your data is always safe. If you exceed limits after downgrading, you'll need to reduce usage before creating new items.
+                  Your data is always safe. If you exceed limits after downgrading, you&apos;ll need to reduce usage before creating new items.
                 </p>
               </CardContent>
             </Card>
@@ -334,7 +334,7 @@ export default function PricingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Yes! Save 17% when you pay annually. That's 2 months free!
+                  Yes! Save 17% when you pay annually. That&apos;s 2 months free!
                 </p>
               </CardContent>
             </Card>

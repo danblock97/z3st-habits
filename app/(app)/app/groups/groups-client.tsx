@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import Link from "next/link";
 import { CalendarClock, Copy, Plus, Sparkles, UsersRound } from "lucide-react";
 
@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { GoPlusModal } from "@/components/ui/go-plus-modal";
+import { useEntitlements } from "@/lib/entitlements";
 
 import { createGroup, createInvite } from "./actions";
 import { groupFormInitialState, type GroupFormState } from "./form-state";
@@ -41,6 +43,16 @@ export function GroupsClient({ groups }: GroupsClientProps) {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [upsellFeature, setUpsellFeature] = useState<string | undefined>();
+
+  const entitlements = useEntitlements();
+
+  // Determine target plan based on current tier
+  const targetPlan = useMemo(() => {
+    if (!entitlements) return 'pro'; // Default to pro if entitlements not loaded
+    return entitlements.tier === 'free' ? 'pro' : 'plus';
+  }, [entitlements]);
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
@@ -50,6 +62,10 @@ export function GroupsClient({ groups }: GroupsClientProps) {
       if (result.status === 'success' && result.group) {
         setIsDialogOpen(false);
         // The page will revalidate and show the new group
+      } else if (result.status === 'error' && result.message?.includes('plan limit')) {
+        // Show upsell modal for plan limit errors
+        setUpsellFeature('group');
+        setShowUpsellModal(true);
       }
     });
   };
@@ -174,6 +190,14 @@ export function GroupsClient({ groups }: GroupsClientProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upsell Modal */}
+      <GoPlusModal
+        open={showUpsellModal}
+        onOpenChange={setShowUpsellModal}
+        feature={upsellFeature}
+        targetPlan={targetPlan}
+      />
     </section>
   );
 }
@@ -241,6 +265,8 @@ function EmptyGroupsState() {
   const [state, setState] = useState<GroupFormState>(groupFormInitialState);
   const [isPending, startTransition] = useTransition();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [upsellFeature, setUpsellFeature] = useState<string | undefined>();
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
@@ -250,6 +276,10 @@ function EmptyGroupsState() {
       if (result.status === 'success' && result.group) {
         setIsDialogOpen(false);
         // The page will revalidate and show the new group
+      } else if (result.status === 'error' && result.message?.includes('plan limit')) {
+        // Show upsell modal for plan limit errors
+        setUpsellFeature('group');
+        setShowUpsellModal(true);
       }
     });
   };

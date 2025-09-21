@@ -127,8 +127,10 @@ export async function createHabit(
     .eq('owner_id', userId)
     .eq('is_archived', false);
 
-  if (!canCreateHabit(entitlements, habitCount?.length ?? 0)) {
-    const upgradeMessage = entitlements?.tier === 'free'
+  if (!entitlements || !canCreateHabit(entitlements, habitCount?.length ?? 0)) {
+    const upgradeMessage = !entitlements
+      ? 'Could not verify your account entitlements. Please try again.'
+      : entitlements.tier === 'free'
       ? 'You\'ve reached your free tier limit of 3 habits. Upgrade to Pro for more habits!'
       : 'You\'ve reached your current tier limit. Upgrade to Plus for unlimited habits!';
 
