@@ -32,7 +32,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   } = await supabase.auth.getSession();
 
   if (session) {
-    redirect('/app');
+    const resolvedSearchParams = await searchParams;
+    const redirectTo = resolvedSearchParams?.redirectTo;
+    redirect(redirectTo || '/app');
   }
 
   const resolvedSearchParams = await searchParams;

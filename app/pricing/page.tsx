@@ -44,6 +44,7 @@ export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentTier, setCurrentTier] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserTier = async () => {
@@ -63,6 +64,13 @@ export default function PricingPage() {
       }
     };
 
+    // Check for plan parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const planParam = urlParams.get('plan');
+    if (planParam) {
+      setSelectedPlan(planParam);
+    }
+
     fetchUserTier();
   }, []);
 
@@ -79,10 +87,10 @@ export default function PricingPage() {
     // If user is not signed in (currentTier is null), show get started options
     if (currentTier === null) {
       if (targetTier === 'pro') {
-        buttonText = 'Get Started with Pro';
+        buttonText = 'Create Account & Start Pro';
         buttonVariant = 'default';
       } else if (targetTier === 'plus') {
-        buttonText = 'Get Started with Plus';
+        buttonText = 'Create Account & Start Plus';
         buttonVariant = 'default';
       } else {
         buttonText = 'Get Started Free';
@@ -152,7 +160,10 @@ export default function PricingPage() {
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) {
-        console.error('No user session found');
+        // Redirect to login with plan type in URL for post-login redirect
+        const loginUrl = new URL('/login', window.location.origin);
+        loginUrl.searchParams.set('redirectTo', `/pricing?plan=${planType}`);
+        window.location.href = loginUrl.toString();
         return;
       }
 
@@ -220,14 +231,22 @@ export default function PricingPage() {
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="mx-auto max-w-6xl">
-        <div className="text-center mb-16">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Crown className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold">Choose Your Plan</h1>
-          </div>
-          <p className="text-xl text-muted-foreground mb-8">
-            Start free and upgrade as your habits grow
-          </p>
+          <div className="text-center mb-16">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Crown className="h-8 w-8 text-primary" />
+              <h1 className="text-4xl font-bold">Choose Your Plan</h1>
+            </div>
+            <p className="text-xl text-muted-foreground mb-8">
+              Start free and upgrade as your habits grow
+            </p>
+            {selectedPlan && (
+              <div className="mb-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                <p className="text-sm text-primary font-medium">
+                  Welcome back! You were trying to get started with{' '}
+                  {selectedPlan === 'pro-monthly' || selectedPlan === 'pro-yearly' ? 'Pro' : 'Plus'}.
+                </p>
+              </div>
+            )}
 
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-4 mb-8">
