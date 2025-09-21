@@ -51,13 +51,17 @@ export default async function BillingPage() {
     if (customerId) {
       // Call the portal API and redirect
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/billing/portal`, {
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        console.log('Calling portal API with URL:', `${siteUrl}/api/billing/portal`);
+        console.log('Customer ID being sent:', customerId);
+
+        const response = await fetch(`${siteUrl}/api/billing/portal`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            returnUrl: '/app/me',
+            returnUrl: `${siteUrl}/app/me`,
             customerId: customerId,
           }),
         });
@@ -76,6 +80,8 @@ export default async function BillingPage() {
       }
     } else {
       // If no customer ID, redirect to pricing to upgrade
+      console.error('No customer ID found in entitlements for user:', userId);
+      console.error('Entitlements data:', entitlements);
       redirect('/pricing');
     }
   };
@@ -236,8 +242,8 @@ export default async function BillingPage() {
                         <>
                           <Badge variant="destructive">
                             {proRequirements?.issues.habits.needsReduction || 0 +
-                             proRequirements?.issues.groups.needsReduction || 0 +
-                             proRequirements?.issues.groupMembers.length || 0} items to reduce
+                             (proRequirements?.issues.groups?.needsReduction || 0) +
+                             (proRequirements?.issues.groupMembers?.length || 0)} items to reduce
                           </Badge>
                           <Button size="sm" variant="outline">Manage</Button>
                         </>
@@ -260,8 +266,8 @@ export default async function BillingPage() {
                         <>
                           <Badge variant="destructive">
                             {freeRequirements?.issues.habits.needsReduction || 0 +
-                             freeRequirements?.issues.groups.needsReduction || 0 +
-                             freeRequirements?.issues.groupMembers.length || 0} items to reduce
+                             (freeRequirements?.issues.groups?.needsReduction || 0) +
+                             (freeRequirements?.issues.groupMembers?.length || 0)} items to reduce
                           </Badge>
                           <Button size="sm" variant="outline">Manage</Button>
                         </>

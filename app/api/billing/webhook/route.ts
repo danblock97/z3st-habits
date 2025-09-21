@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
 
-import { updateUserEntitlements, autoCleanupResources } from '@/lib/entitlements-server';
+import { updateUserEntitlements } from '@/lib/entitlements-server';
 import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server';
 import type { EntitlementTier } from '@/lib/entitlements-server';
 
@@ -388,6 +388,18 @@ export async function POST(request: NextRequest) {
 
           if (success) {
             console.log('✅ Successfully updated entitlements for user:', userId);
+            console.log('🧹 Triggering auto-cleanup for tier change...');
+            try {
+              const { autoCleanupResources, getUserUsageWithServiceRole } = await import('@/lib/entitlements-server');
+              const cleanupSuccess = await autoCleanupResources(userId, tier);
+              if (cleanupSuccess) {
+                console.log('✅ Auto-cleanup completed for user:', userId);
+              } else {
+                console.error('❌ Auto-cleanup failed for user:', userId);
+              }
+            } catch (error) {
+              console.error('❌ Auto-cleanup error for user:', userId, error);
+            }
           } else {
             console.error('❌ Failed to update entitlements for user:', userId);
           }
@@ -396,7 +408,7 @@ export async function POST(request: NextRequest) {
           console.log('📊 Checking for downgrade scenario...');
 
           // Get current entitlements after update to check if we need cleanup
-          const { fetchUserEntitlements, autoCleanupResources } = await import('@/lib/entitlements-server');
+          const { fetchUserEntitlements } = await import('@/lib/entitlements-server');
           const userEntitlements = await fetchUserEntitlements(userId);
 
           if (userEntitlements) {
@@ -413,10 +425,15 @@ export async function POST(request: NextRequest) {
               console.log(`Downgrade detected: ${existingEntitlements?.tier || 'none'} -> ${tier}, triggering auto-cleanup`);
 
               try {
-                await autoCleanupResources(userId, tier);
-                console.log(`✅ Auto-cleanup completed for user ${userId}`);
+                const { autoCleanupResources, getUserUsageWithServiceRole } = await import('@/lib/entitlements-server');
+                const cleanupSuccess = await autoCleanupResources(userId, tier);
+                if (cleanupSuccess) {
+                  console.log(`✅ Auto-cleanup completed for user ${userId}`);
+                } else {
+                  console.error(`❌ Auto-cleanup failed for user ${userId}`);
+                }
               } catch (error) {
-                console.error(`❌ Auto-cleanup failed for user ${userId}:`, error);
+                console.error(`❌ Auto-cleanup error for user ${userId}:`, error);
               }
             }
           }
@@ -440,10 +457,15 @@ export async function POST(request: NextRequest) {
           if (success) {
             console.log(`Downgraded user ${userId} to free tier, triggering auto-cleanup`);
             try {
-              await autoCleanupResources(userId, 'free');
-              console.log(`✅ Auto-cleanup completed for user ${userId}`);
+              const { autoCleanupResources, getUserUsageWithServiceRole } = await import('@/lib/entitlements-server');
+              const cleanupSuccess = await autoCleanupResources(userId, 'free');
+              if (cleanupSuccess) {
+                console.log(`✅ Auto-cleanup completed for user ${userId}`);
+              } else {
+                console.error(`❌ Auto-cleanup failed for user ${userId}`);
+              }
             } catch (error) {
-              console.error(`❌ Auto-cleanup failed for user ${userId}:`, error);
+              console.error(`❌ Auto-cleanup error for user ${userId}:`, error);
             }
           } else {
             console.error(`Failed to downgrade user ${userId} to free tier`);

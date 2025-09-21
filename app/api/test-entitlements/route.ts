@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateUserEntitlements, fetchUserEntitlements } from '@/lib/entitlements-server';
+import { updateUserEntitlements, fetchUserEntitlementsServiceRole } from '@/lib/entitlements-server';
 import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, tier } = await request.json();
+    const { userId, tier, customerId } = await request.json();
 
     if (!userId || !tier) {
       return NextResponse.json(
@@ -37,7 +37,10 @@ export async function POST(request: NextRequest) {
 
     // Test with service role
     console.log(`Testing entitlements update for user ${userId} to tier ${tier} with service role`);
-    const success = await updateUserEntitlements(userId, tier, { test: true }, true);
+    const source = customerId
+      ? { customerId, subscriptionId: "sub_1S9qPXCyXEVsMkWU1I0Rsq5G" }
+      : { test: true };
+    const success = await updateUserEntitlements(userId, tier, source, true);
 
     if (!success) {
       return NextResponse.json(
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch and return the updated entitlements
-    const entitlements = await fetchUserEntitlements(userId);
+    const entitlements = await fetchUserEntitlementsServiceRole(userId);
 
     return NextResponse.json({
       success: true,
@@ -77,7 +80,7 @@ export async function GET() {
       );
     }
 
-    const entitlements = await fetchUserEntitlements(user.id);
+    const entitlements = await fetchUserEntitlementsServiceRole(user.id);
 
     // Also get some test user IDs from profiles table for testing
     const { data: profiles } = await supabase

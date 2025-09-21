@@ -19,16 +19,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Create a customer portal session
+    console.log('Creating Stripe portal session for customer:', customerId);
     const session = await stripe.billingPortal.sessions.create({
       return_url: returnUrl,
       customer: customerId,
     });
 
+    console.log('Portal session created successfully:', session.url);
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Error creating portal session:', error);
     return NextResponse.json(
-      { error: 'Failed to create billing portal session' },
+      { error: 'Failed to create billing portal session', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -36,9 +38,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== PORTAL API POST REQUEST ===');
     const { returnUrl, customerId } = await request.json();
+    console.log('Request body:', { returnUrl, customerId });
 
     if (!returnUrl || !customerId) {
+      console.error('Missing return URL or customer ID:', { returnUrl, customerId });
       return NextResponse.json(
         { error: 'Missing return URL or customer ID' },
         { status: 400 }
@@ -46,16 +51,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Create a customer portal session
+    console.log('Creating Stripe portal session for customer:', customerId);
     const session = await stripe.billingPortal.sessions.create({
       return_url: returnUrl,
       customer: customerId,
     });
 
+    console.log('Portal session created successfully:', session.url);
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Error creating portal session:', error);
     return NextResponse.json(
-      { error: 'Failed to create billing portal session' },
+      { error: 'Failed to create billing portal session', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

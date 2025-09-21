@@ -68,6 +68,37 @@ export async function fetchUserEntitlements(userId: string): Promise<UserEntitle
   };
 }
 
+// Fetch user entitlements with service role client (for server-side operations)
+export async function fetchUserEntitlementsServiceRole(userId: string): Promise<UserEntitlements | null> {
+  const supabase = createServiceRoleClient();
+
+  const { data, error } = await supabase
+    .from('entitlements')
+    .select('tier, source, updated_at')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching entitlements with service role:', error);
+    return null;
+  }
+
+  if (!data) {
+    // Return default free tier for users without explicit entitlements
+    return {
+      tier: 'free',
+      source: {},
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  return {
+    tier: data.tier as EntitlementTier,
+    source: data.source,
+    updatedAt: data.updated_at,
+  };
+}
+
 export async function updateUserEntitlements(
   userId: string,
   tier: EntitlementTier,
@@ -175,12 +206,65 @@ export interface DowngradeRequirements {
 export async function getUserUsage(userId: string): Promise<UsageStats> {
   const supabase = await createServerClient();
 
-  // Get active habits count
+  // Get all habits count (since we delete them, not archive)
   const { data: habits, error: habitsError } = await supabase
     .from('habits')
+    .select('id, title')
+    .eq('owner_id', userId);
+
+  if (habitsError) {
+    console.error('Error fetching habits:', habitsError);
+  }
+
+  // Get groups and member counts
+  const { data: groups, error: groupsError } = await supabase
+    .from('groups')
+    .select(`
+      id,
+      name,
+      group_members!inner(count)
+    `)
+    .eq('owner_id', userId);
+
+  if (groupsError) {
+    console.error('Error fetching groups:', groupsError);
+  }
+
+  // Get reminders count
+  const { data: reminders, error: remindersError } = await supabase
+    .from('reminders')
     .select('id')
-    .eq('owner_id', userId)
-    .eq('is_archived', false);
+    .eq('user_id', userId);
+
+  if (remindersError) {
+    console.error('Error fetching reminders:', remindersError);
+  }
+
+  // Process group member counts
+  const groupMemberCounts: Record<string, number> = {};
+  if (groups) {
+    groups.forEach((group: { id: string; group_members: unknown[] }) => {
+      groupMemberCounts[group.id] = group.group_members.length || 0;
+    });
+  }
+
+  return {
+    habits: habits?.length || 0,
+    groups: groups?.length || 0,
+    groupMemberCounts,
+    reminders: reminders?.length || 0,
+  };
+}
+
+// Get user usage with service role client (for auto-cleanup)
+export async function getUserUsageWithServiceRole(userId: string): Promise<UsageStats> {
+  const supabase = createServiceRoleClient();
+
+  // Get all habits count (since we delete them, not archive)
+  const { data: habits, error: habitsError } = await supabase
+    .from('habits')
+    .select('id, title')
+    .eq('owner_id', userId);
 
   if (habitsError) {
     console.error('Error fetching habits:', habitsError);
@@ -281,52 +365,70 @@ export function canDowngradeToTier(
 }
 
 // Auto-cleanup resources when downgrading
-export async function autoCleanupResources(userId: string, newTier: EntitlementTier): Promise<void> {
+export async function autoCleanupResources(userId: string, newTier: EntitlementTier): Promise<boolean> {
   const supabase = createServiceRoleClient();
   const limits = getEntitlementLimits(newTier);
 
-  console.log(`Starting auto-cleanup for user ${userId} to ${newTier} tier`);
+  console.log(`🚀 Starting auto-cleanup for user ${userId} to ${newTier} tier`);
+  console.log(`📊 Tier limits:`, limits);
 
   try {
-    // Get current usage
-    const usage = await getUserUsage(userId);
+    // Get current usage with service role client to ensure accurate counts
+    const usage = await getUserUsageWithServiceRole(userId);
+    console.log(`📊 Current usage for user ${userId}:`, usage);
+    console.log(`📈 Tier limits:`, limits);
+
+    // Check if any cleanup is needed
+    const habitCleanupNeeded = limits.maxActiveHabits !== -1 && usage.habits > limits.maxActiveHabits;
+    const groupCleanupNeeded = limits.maxGroups !== -1 && usage.groups > limits.maxGroups;
+
+    console.log(`🧹 Cleanup needed - Habits: ${habitCleanupNeeded}, Groups: ${groupCleanupNeeded}`);
 
     // 1. Clean up excess habits
     if (limits.maxActiveHabits !== -1 && usage.habits > limits.maxActiveHabits) {
-      console.log(`Cleaning up excess habits: ${usage.habits - limits.maxActiveHabits} habits need to be removed`);
+      console.log(`🗑️ Starting habit cleanup: ${usage.habits} habits, limit ${limits.maxActiveHabits}, need to delete ${usage.habits - limits.maxActiveHabits}`);
 
       // Get all habits ordered by creation date (oldest first)
       const { data: habits, error: habitsError } = await supabase
         .from('habits')
-        .select('id, created_at')
+        .select('id, created_at, title')
         .eq('owner_id', userId)
-        .eq('is_archived', false)
         .order('created_at', { ascending: true });
 
       if (habitsError) {
-        console.error('Error fetching habits for cleanup:', habitsError);
-      } else {
-        const excessHabits = habits?.slice(limits.maxActiveHabits) || [];
+        console.error('❌ Error fetching habits for cleanup:', habitsError);
+        return false;
+      }
 
-        for (const habit of excessHabits) {
-          // Archive the habit instead of deleting (safer)
-          const { error: archiveError } = await supabase
-            .from('habits')
-            .update({ is_archived: true })
-            .eq('id', habit.id);
+      if (!habits || habits.length === 0) {
+        console.log('⚠️ No habits found for cleanup');
+        return true; // No cleanup needed is still success
+      }
 
-          if (archiveError) {
-            console.error(`Error archiving habit ${habit.id}:`, archiveError);
-          } else {
-            console.log(`Archived habit ${habit.id}`);
-          }
+      console.log(`📋 Found ${habits.length} habits to process`);
+      const excessHabits = habits.slice(limits.maxActiveHabits);
+      console.log(`🗑️ Excess habits to delete: ${excessHabits.length}`);
+
+      for (const habit of excessHabits) {
+        console.log(`🗑️ Deleting habit: ${habit.title || 'Unknown'} (${habit.id})`);
+        // Delete the habit (consistent with group deletion)
+        const { error: deleteError } = await supabase
+          .from('habits')
+          .delete()
+          .eq('id', habit.id);
+
+        if (deleteError) {
+          console.error(`❌ Error deleting habit ${habit.id}:`, deleteError);
+          return false;
+        } else {
+          console.log(`✅ Deleted habit ${habit.id} (was: ${habit.title || 'Unknown'})`);
         }
       }
     }
 
     // 2. Clean up excess groups
     if (limits.maxGroups !== -1 && usage.groups > limits.maxGroups) {
-      console.log(`Cleaning up excess groups: ${usage.groups - limits.maxGroups} groups need to be removed`);
+      console.log(`🗑️ Starting group cleanup: ${usage.groups} groups, limit ${limits.maxGroups}, need to delete ${usage.groups - limits.maxGroups}`);
 
       // Get all groups ordered by creation date (oldest first)
       const { data: groups, error: groupsError } = await supabase
@@ -336,15 +438,24 @@ export async function autoCleanupResources(userId: string, newTier: EntitlementT
         .order('created_at', { ascending: true });
 
       if (groupsError) {
-        console.error('Error fetching groups for cleanup:', groupsError);
-      } else {
-        const excessGroups = groups?.slice(limits.maxGroups) || [];
+        console.error('❌ Error fetching groups for cleanup:', groupsError);
+        return false;
+      }
 
-        for (const group of excessGroups) {
-          // Delete group and all related data (members, invites, etc.)
-          await deleteGroupCascade(supabase, group.id, userId);
-          console.log(`Deleted group ${group.name} (${group.id})`);
-        }
+      if (!groups || groups.length === 0) {
+        console.log('⚠️ No groups found for cleanup');
+        return true; // No cleanup needed is still success
+      }
+
+      console.log(`📋 Found ${groups.length} groups to process`);
+      const excessGroups = groups.slice(limits.maxGroups);
+      console.log(`🗑️ Excess groups to delete: ${excessGroups.length}`);
+
+      for (const group of excessGroups) {
+        console.log(`🗑️ Deleting group: ${group.name} (${group.id})`);
+        // Delete group and all related data (members, invites, etc.)
+        await deleteGroupCascade(supabase, group.id, userId);
+        console.log(`✅ Deleted group ${group.name} (${group.id})`);
       }
     }
 
@@ -400,9 +511,11 @@ export async function autoCleanupResources(userId: string, newTier: EntitlementT
     }
 
     console.log(`✅ Auto-cleanup completed for user ${userId}`);
+    console.log(`🎉 Final state - Habits: ${usage.habits - (habitCleanupNeeded ? usage.habits - limits.maxActiveHabits : 0)}, Groups: ${usage.groups - (groupCleanupNeeded ? usage.groups - limits.maxGroups : 0)}`);
+    return true; // Success
   } catch (error) {
-    console.error('Error during auto-cleanup:', error);
-    throw error;
+    console.error('❌ Error during auto-cleanup:', error);
+    return false; // Failure
   }
 }
 
