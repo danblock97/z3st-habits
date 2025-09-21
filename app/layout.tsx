@@ -112,9 +112,12 @@ function SiteHeader({ user }: { user: User | null }) {
           href="/"
           className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground"
         >
-          <span className="text-2xl" aria-hidden="true">
-            🍋
-          </span>
+          <img
+            src="/logo.png"
+            alt=""
+            className="h-8 w-8"
+            aria-hidden="true"
+          />
           <span className="hidden sm:inline">Z3st Habits</span>
           <span className="sr-only">Z3st Habits home</span>
         </Link>
