@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { createServerClient } from '@/lib/supabase/server';
-import { fetchUserEntitlements, getEntitlementLimits, formatLimit } from '@/lib/entitlements-server';
+import { fetchUserEntitlements, getEntitlementLimits, formatLimit, getUserUsage, canDowngradeToTier } from '@/lib/entitlements-server';
+import { getCurrentUsage, checkDowngradeRequirements } from '../actions';
+import { DowngradeModal } from '@/components/ui/go-plus-modal';
 
 export default async function BillingPage() {
   const supabase = await createServerClient();
@@ -26,6 +28,11 @@ export default async function BillingPage() {
   }
 
   const limits = getEntitlementLimits(entitlements.tier);
+
+  // Get current usage for downgrade protection
+  const usageData = await getCurrentUsage();
+  const freeRequirements = await checkDowngradeRequirements('free');
+  const proRequirements = await checkDowngradeRequirements('pro');
 
   const handleManageBilling = async () => {
     'use server';
@@ -163,7 +170,84 @@ export default async function BillingPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Downgrade Protection */}
+        {entitlements.tier === 'plus' && (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Downgrade Protection</CardTitle>
+                <CardDescription>
+                  Before downgrading, you need to reduce your usage to fit within the target plan limits
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <div className="font-medium">Downgrade to Pro</div>
+                      <div className="text-sm text-muted-foreground">15 habits, 3 groups, 15 members per group</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {proRequirements?.canDowngrade ? (
+                        <>
+                          <Badge variant="secondary" className="text-green-600">Ready</Badge>
+                          <Button size="sm">Continue</Button>
+                        </>
+                      ) : (
+                        <>
+                          <Badge variant="destructive">
+                            {proRequirements?.issues.habits.needsReduction || 0 +
+                             proRequirements?.issues.groups.needsReduction || 0 +
+                             proRequirements?.issues.groupMembers.length || 0} items to reduce
+                          </Badge>
+                          <Button size="sm" variant="outline">Manage</Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <div className="font-medium">Downgrade to Free</div>
+                      <div className="text-sm text-muted-foreground">5 habits, 1 group, 5 members</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {freeRequirements?.canDowngrade ? (
+                        <>
+                          <Badge variant="secondary" className="text-green-600">Ready</Badge>
+                          <Button size="sm">Continue</Button>
+                        </>
+                      ) : (
+                        <>
+                          <Badge variant="destructive">
+                            {freeRequirements?.issues.habits.needsReduction || 0 +
+                             freeRequirements?.issues.groups.needsReduction || 0 +
+                             freeRequirements?.issues.groupMembers.length || 0} items to reduce
+                          </Badge>
+                          <Button size="sm" variant="outline">Manage</Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
+
+      {/* Downgrade Modal */}
+      <DowngradeModal
+        open={false} // This will be controlled by state
+        onOpenChange={() => {}} // This will be controlled by state
+        currentTier={entitlements.tier}
+        targetTier="pro"
+        onConfirmDowngrade={() => {
+          // This would redirect to Stripe cancel page
+          window.location.href = '/api/billing/portal';
+        }}
+      />
     </div>
   );
 }

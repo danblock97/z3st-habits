@@ -135,3 +135,129 @@ export function canAddGroupMember(entitlements: UserEntitlements, currentCount: 
   const limits = getEntitlementLimits(entitlements.tier);
   return limits.maxGroupMembers === -1 || currentCount < limits.maxGroupMembers;
 }
+
+// Types for usage checking
+export interface UsageStats {
+  habits: number;
+  groups: number;
+  groupMemberCounts: Record<string, number>;
+  reminders: number;
+}
+
+export interface DowngradeRequirements {
+  canDowngrade: boolean;
+  issues: {
+    habits: { current: number; limit: number; needsReduction: number };
+    groups: { current: number; limit: number; needsReduction: number };
+    groupMembers: { groupId: string; groupName: string; current: number; limit: number; needsReduction: number }[];
+  };
+}
+
+// Get current usage stats for a user
+export async function getUserUsage(userId: string): Promise<UsageStats> {
+  const supabase = await createServerClient();
+
+  // Get active habits count
+  const { data: habits, error: habitsError } = await supabase
+    .from('habits')
+    .select('id')
+    .eq('owner_id', userId)
+    .eq('is_archived', false);
+
+  if (habitsError) {
+    console.error('Error fetching habits:', habitsError);
+  }
+
+  // Get groups and member counts
+  const { data: groups, error: groupsError } = await supabase
+    .from('groups')
+    .select(`
+      id,
+      name,
+      group_members!inner(count)
+    `)
+    .eq('owner_id', userId);
+
+  if (groupsError) {
+    console.error('Error fetching groups:', groupsError);
+  }
+
+  // Get reminders count
+  const { data: reminders, error: remindersError } = await supabase
+    .from('reminders')
+    .select('id')
+    .eq('user_id', userId);
+
+  if (remindersError) {
+    console.error('Error fetching reminders:', remindersError);
+  }
+
+  // Process group member counts
+  const groupMemberCounts: Record<string, number> = {};
+  if (groups) {
+    groups.forEach((group: { id: string; group_members: unknown[] }) => {
+      groupMemberCounts[group.id] = group.group_members.length || 0;
+    });
+  }
+
+  return {
+    habits: habits?.length || 0,
+    groups: groups?.length || 0,
+    groupMemberCounts,
+    reminders: reminders?.length || 0,
+  };
+}
+
+// Check if user can downgrade to a specific tier
+export function canDowngradeToTier(
+  currentEntitlements: UserEntitlements,
+  targetTier: EntitlementTier,
+  currentUsage: UsageStats
+): DowngradeRequirements {
+  const targetLimits = getEntitlementLimits(targetTier);
+
+  // Check habits
+  const habitsIssue = {
+    current: currentUsage.habits,
+    limit: targetLimits.maxActiveHabits,
+    needsReduction: Math.max(0, currentUsage.habits - targetLimits.maxActiveHabits),
+  };
+
+  // Check groups
+  const groupsIssue = {
+    current: currentUsage.groups,
+    limit: targetLimits.maxGroups,
+    needsReduction: Math.max(0, currentUsage.groups - targetLimits.maxGroups),
+  };
+
+  // Check group members
+  const groupMembersIssues: { groupId: string; groupName: string; current: number; limit: number; needsReduction: number }[] = [];
+
+  if (targetLimits.maxGroupMembers !== -1) {
+    Object.entries(currentUsage.groupMemberCounts).forEach(([groupId, memberCount]) => {
+      const needsReduction = Math.max(0, memberCount - targetLimits.maxGroupMembers);
+      if (needsReduction > 0) {
+        groupMembersIssues.push({
+          groupId,
+          groupName: `Group ${groupId}`, // We'll need to get the actual name
+          current: memberCount,
+          limit: targetLimits.maxGroupMembers,
+          needsReduction,
+        });
+      }
+    });
+  }
+
+  const canDowngrade = habitsIssue.needsReduction === 0 &&
+                      groupsIssue.needsReduction === 0 &&
+                      groupMembersIssues.length === 0;
+
+  return {
+    canDowngrade,
+    issues: {
+      habits: habitsIssue,
+      groups: groupsIssue,
+      groupMembers: groupMembersIssues,
+    },
+  };
+}
