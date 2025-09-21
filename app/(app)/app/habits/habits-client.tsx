@@ -12,7 +12,7 @@ import {
   type FormEvent,
 } from "react";
 import { useFormStatus } from "react-dom";
-import { AlertTriangle, CalendarClock, CircleDot, ListChecks, Plus, Sparkles } from "lucide-react";
+import { AlertTriangle, CalendarClock, Check, CircleDot, ListChecks, Plus, Sparkles } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -284,6 +284,8 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
         timezone={timezone}
         onOptimisticAdd={handleOptimisticAdd}
         onOptimisticRemove={handleOptimisticRemove}
+        onShowUpsell={setShowUpsellModal}
+        onSetUpsellFeature={setUpsellFeature}
       />
 
       <GoPlusModal
@@ -438,6 +440,8 @@ type NewHabitDialogProps = {
   timezone: string;
   onOptimisticAdd: (habit: HabitListItem) => void;
   onOptimisticRemove: (id: string) => void;
+  onShowUpsell: (show: boolean) => void;
+  onSetUpsellFeature: (feature: string | undefined) => void;
 };
 
 function NewHabitDialog({
@@ -447,6 +451,8 @@ function NewHabitDialog({
   timezone,
   onOptimisticAdd,
   onOptimisticRemove,
+  onShowUpsell,
+  onSetUpsellFeature,
 }: NewHabitDialogProps) {
   const [formState, formAction] = useActionState(createHabit, habitFormInitialState);
   const formRef = useRef<HTMLFormElement>(null);
@@ -474,11 +480,11 @@ function NewHabitDialog({
   // Handle upgrade errors
   useEffect(() => {
     if (formState.status === "error" && formState.message?.includes("Upgrade")) {
-      setUpsellFeature("habit");
-      setShowUpsellModal(true);
-      setIsDialogOpen(false);
+      onSetUpsellFeature("habit");
+      onShowUpsell(true);
+      onOpenChange(false);
     }
-  }, [formState.status, formState.message]);
+  }, [formState.status, formState.message, onSetUpsellFeature, onShowUpsell, onOpenChange]);
 
   useEffect(() => {
     if (!open) {

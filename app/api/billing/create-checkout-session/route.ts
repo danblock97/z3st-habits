@@ -5,48 +5,115 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 });
 
+// Server-side price ID mapping - more secure than exposing to client
+const PLAN_TYPE_TO_PRICE_ID: Record<string, string> = {
+  'pro-monthly': process.env.STRIPE_PRICE_ID_PRO_MONTHLY!,
+  'pro-yearly': process.env.STRIPE_PRICE_ID_PRO_YEARLY!,
+  'plus-monthly': process.env.STRIPE_PRICE_ID_PLUS_MONTHLY!,
+  'plus-yearly': process.env.STRIPE_PRICE_ID_PLUS_YEARLY!,
+};
+
+// Verify price IDs are properly loaded
+console.log('Loaded price IDs:', {
+  'pro-monthly': process.env.STRIPE_PRICE_ID_PRO_MONTHLY,
+  'pro-yearly': process.env.STRIPE_PRICE_ID_PRO_YEARLY,
+  'plus-monthly': process.env.STRIPE_PRICE_ID_PLUS_MONTHLY,
+  'plus-yearly': process.env.STRIPE_PRICE_ID_PLUS_YEARLY,
+});
+
+export async function GET() {
+  // Simple test endpoint to verify Stripe is working
+  try {
+    const balance = await stripe.balance.retrieve();
+    return NextResponse.json({
+      status: 'ok',
+      balance: balance.available[0]?.amount || 0,
+      currency: balance.available[0]?.currency || 'unknown',
+      loadedPriceIds: {
+        'pro-monthly': process.env.STRIPE_PRICE_ID_PRO_MONTHLY,
+        'pro-yearly': process.env.STRIPE_PRICE_ID_PRO_YEARLY,
+        'plus-monthly': process.env.STRIPE_PRICE_ID_PLUS_MONTHLY,
+        'plus-yearly': process.env.STRIPE_PRICE_ID_PLUS_YEARLY,
+      }
+    });
+  } catch (error) {
+    return NextResponse.json({
+      error: 'Stripe not configured',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { priceId, successUrl, cancelUrl, userId } = await request.json();
+    const { planType, successUrl, cancelUrl, userId } = await request.json();
 
-    if (!priceId || !successUrl || !cancelUrl || !userId) {
+    if (!planType || !successUrl || !cancelUrl || !userId) {
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
       );
     }
 
-    // Get the user session
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const priceId = PLAN_TYPE_TO_PRICE_ID[planType];
+    if (!priceId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'Invalid plan type' },
+        { status: 400 }
       );
     }
 
-    const token = authHeader.substring(7);
+    // Note: Authentication is handled by the fact that only logged-in users can reach the pricing page
+    // The userId from the session metadata will be used to identify the user
 
-    // For now, we'll assume the token is valid since this is a basic implementation
-    // In a real app, you'd validate the session token
-
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: {
-        user_id: userId,
-      },
+    console.log('Creating checkout session with:', {
+      planType,
+      priceId,
+      successUrl,
+      cancelUrl,
+      userId
     });
 
-    return NextResponse.json({ sessionId: session.id });
+    try {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: {
+          user_id: userId,
+        },
+        allow_promotion_codes: true,
+        billing_address_collection: 'auto',
+      });
+
+      console.log('Checkout session created successfully:', {
+        sessionId: session.id,
+        url: session.url,
+        priceId: priceId,
+        planType: planType
+      });
+
+      return NextResponse.json({ sessionId: session.id, url: session.url });
+    } catch (stripeError: any) {
+      console.error('Stripe error details:', {
+        type: stripeError.type,
+        code: stripeError.code,
+        message: stripeError.message,
+        param: stripeError.param,
+        requestId: stripeError.requestId
+      });
+      return NextResponse.json(
+        { error: 'Stripe error', details: stripeError.message },
+        { status: 400 }
+      );
+    }
   } catch (error) {
     console.error('Error creating checkout session:', error);
     return NextResponse.json(

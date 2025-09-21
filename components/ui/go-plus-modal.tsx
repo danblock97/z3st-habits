@@ -19,13 +19,14 @@ interface GoPlusModalProps {
   onUpgrade?: () => void;
 }
 
-const PLUS_FEATURES = [
-  "Unlimited habits (vs 3 on free)",
+const PRO_FEATURES = [
+  "Up to 15 habits (vs 3 on free)",
   "Unlimited reminders",
-  "Multiple groups with larger member limits",
+  "Up to 3 groups with up to 15 members each",
   "Advanced habit analytics",
   "Priority support",
-  "Early access to new features",
+  "Custom habit categories",
+  "Export data",
 ];
 
 export function GoPlusModal({ open, onOpenChange, feature, onUpgrade }: GoPlusModalProps) {
@@ -52,11 +53,11 @@ export function GoPlusModal({ open, onOpenChange, feature, onUpgrade }: GoPlusMo
 
     switch (feature) {
       case 'habit':
-        return "You've reached your free tier limit of 3 habits. Upgrade to Plus to create unlimited habits!";
+        return "You've reached your habit limit. Upgrade to unlock more habits and advanced features!";
       case 'reminder':
         return "Upgrade to unlock advanced reminder features and priority support!";
       case 'group':
-        return "You've reached your free tier limit. Upgrade to Plus for multiple groups and larger member limits!";
+        return "You've reached your group limit. Upgrade to unlock multiple groups and larger member limits!";
       default:
         return "Unlock your full potential with Z3st Plus!";
     }
@@ -66,23 +67,23 @@ export function GoPlusModal({ open, onOpenChange, feature, onUpgrade }: GoPlusMo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-yellow-500">
             <Crown className="h-6 w-6 text-white" />
           </div>
-          <DialogTitle className="text-2xl font-bold">Upgrade to Plus</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Upgrade to Pro</DialogTitle>
           <DialogDescription className="text-base">
-            {getFeatureSpecificMessage() || "Unlock unlimited habits, reminders, and groups with Z3st Plus!"}
+            {getFeatureSpecificMessage() || "Unlock more habits and advanced features with Z3st Pro!"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+          <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="font-medium text-primary">Plus Features</span>
+              <Sparkles className="h-4 w-4 text-orange-600" />
+              <span className="font-medium text-orange-600">Pro Features</span>
             </div>
             <ul className="space-y-2">
-              {PLUS_FEATURES.map((feature, index) => (
+              {PRO_FEATURES.map((feature, index) => (
                 <li key={index} className="flex items-center gap-2 text-sm">
                   <Check className="h-4 w-4 text-green-500" />
                   <span>{feature}</span>
@@ -93,7 +94,7 @@ export function GoPlusModal({ open, onOpenChange, feature, onUpgrade }: GoPlusMo
 
           <div className="flex flex-col gap-2 text-center">
             <div className="text-3xl font-bold">
-              $9<span className="text-lg font-normal text-muted-foreground">/month</span>
+              £5<span className="text-lg font-normal text-muted-foreground">/month</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Cancel anytime. No setup fees.
@@ -104,7 +105,7 @@ export function GoPlusModal({ open, onOpenChange, feature, onUpgrade }: GoPlusMo
             <Button
               onClick={handleUpgrade}
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600"
               size="lg"
             >
               {isLoading ? (
@@ -112,15 +113,24 @@ export function GoPlusModal({ open, onOpenChange, feature, onUpgrade }: GoPlusMo
               ) : (
                 <>
                   <Crown className="mr-2 h-4 w-4" />
-                  Upgrade to Plus
+                  Upgrade to Pro
                 </>
               )}
             </Button>
 
             <Button
               variant="outline"
+              onClick={() => window.location.href = '/pricing'}
+              disabled={isLoading}
+            >
+              View All Plans
+            </Button>
+
+            <Button
+              variant="ghost"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
+              size="sm"
             >
               Maybe Later
             </Button>

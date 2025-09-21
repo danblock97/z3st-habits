@@ -43,10 +43,9 @@ export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubscribe = async (monthlyPriceId: string, yearlyPriceId: string) => {
+  const handleSubscribe = async (planType: string) => {
     setIsLoading(true);
     try {
-      const priceId = isYearly ? yearlyPriceId : monthlyPriceId;
 
       // Get user ID from Supabase (client-side)
       const { createClient } = await import('@/lib/supabase/client');
@@ -65,18 +64,32 @@ export default function PricingPage() {
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          priceId,
-          successUrl: `${window.location.origin}/app?success=true`,
+          planType,
+          successUrl: `${window.location.origin}/app/habits?success=true`,
           cancelUrl: `${window.location.origin}/pricing`,
           userId: session.user.id,
         }),
       });
 
-      const { sessionId } = await response.json();
+      const { sessionId, url, error, details } = await response.json();
 
-      if (sessionId) {
+      if (error) {
+        console.error('Checkout creation failed:', { error, details });
+        alert(`Checkout failed: ${details || error}`);
+        return;
+      }
+
+      if (sessionId && url) {
+        console.log('Redirecting to Stripe:', url);
         // Redirect to Stripe Checkout
+        window.location.href = url;
+      } else if (sessionId) {
+        // Fallback to manual URL construction
+        console.log('Using fallback URL construction');
         window.location.href = `https://checkout.stripe.com/c/pay/${sessionId}`;
+      } else {
+        console.error('No sessionId or url returned');
+        alert('Failed to create checkout session. Check console for details.');
       }
     } catch (error) {
       console.error('Subscription error:', error);
@@ -201,7 +214,7 @@ export default function PricingPage() {
               <Button
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
                 size="lg"
-                onClick={() => handleSubscribe('price_pro_monthly', 'price_pro_yearly')}
+                onClick={() => handleSubscribe(isYearly ? 'pro-yearly' : 'pro-monthly')}
                 disabled={isLoading}
               >
                 {isLoading ? 'Processing...' : 'Upgrade to Pro'}
@@ -249,7 +262,7 @@ export default function PricingPage() {
               <Button
                 className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                 size="lg"
-                onClick={() => handleSubscribe('price_plus_monthly', 'price_plus_yearly')}
+                onClick={() => handleSubscribe(isYearly ? 'plus-yearly' : 'plus-monthly')}
                 disabled={isLoading}
               >
                 {isLoading ? 'Processing...' : 'Upgrade to Plus'}

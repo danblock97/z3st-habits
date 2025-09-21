@@ -38,10 +38,28 @@ async function getUserIdFromCustomerId(customerId: string): Promise<string | nul
   return data?.id || null;
 }
 
+export async function GET() {
+  return NextResponse.json({
+    status: 'Webhook endpoint is active',
+    endpoint: '/api/billing/webhook',
+    configuredEvents: [
+      'checkout.session.completed',
+      'customer.subscription.created',
+      'customer.subscription.updated',
+      'customer.subscription.deleted',
+      'invoice.payment_succeeded',
+      'invoice.payment_failed'
+    ]
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
     const sig = (await headers()).get('stripe-signature')!;
+
+    console.log('Webhook received - Body length:', body.length);
+    console.log('Signature present:', !!sig);
 
     let event: Stripe.Event;
 
@@ -52,52 +70,72 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    console.log('Webhook event type:', event.type);
+    console.log('Webhook event ID:', event.id);
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
 
-        console.log('Checkout completed:', session.id);
+        console.log('=== CHECKOUT SESSION COMPLETED ===');
+        console.log('Session ID:', session.id);
+        console.log('Session metadata:', session.metadata);
+        console.log('Session customer:', session.customer);
+        console.log('Session payment status:', session.payment_status);
 
         // Get user ID from session metadata
         const userId = session.metadata?.user_id;
         if (!userId) {
-          console.error('No user_id in session metadata');
+          console.error('❌ No user_id in session metadata:', session.metadata);
           break;
         }
+        console.log('✅ Found user_id:', userId);
 
         // Determine tier from the line items
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-        const priceId = lineItems.data[0]?.price?.id;
+        console.log('Line items:', lineItems.data);
 
+        const priceId = lineItems.data[0]?.price?.id;
         if (!priceId) {
-          console.error('No price ID found in checkout session');
+          console.error('❌ No price ID found in checkout session line items');
           break;
         }
+        console.log('✅ Found price ID:', priceId);
 
         const tier = PRICE_ID_TO_TIER[priceId];
         if (!tier) {
-          console.error('Unknown price ID:', priceId);
+          console.error('❌ Unknown price ID:', priceId, 'Available mappings:', PRICE_ID_TO_TIER);
           break;
         }
+        console.log('✅ Mapped to tier:', tier);
 
         // Store Stripe customer ID in user's profile
         const customerId = session.customer as string;
+        console.log('✅ Customer ID:', customerId);
+
         const supabase = await createServerClient();
-        await supabase
+        const { error: profileError } = await supabase
           .from('profiles')
           .update({ stripe_customer_id: customerId })
           .eq('id', userId);
 
+        if (profileError) {
+          console.error('❌ Error updating profile with customer ID:', profileError);
+        } else {
+          console.log('✅ Updated profile with customer ID');
+        }
+
         // Update user entitlements
+        console.log('📝 Updating entitlements for user:', userId, 'to tier:', tier);
         const success = await updateUserEntitlements(userId, tier, {
           subscriptionId: session.subscription as string,
           customerId: customerId,
         });
 
         if (success) {
-          console.log(`Updated user ${userId} to tier ${tier}`);
+          console.log('✅ Successfully updated user', userId, 'to tier', tier);
         } else {
-          console.error(`Failed to update user ${userId} to tier ${tier}`);
+          console.error('❌ Failed to update user', userId, 'to tier', tier);
         }
 
         break;

@@ -10,7 +10,7 @@ import {
   type StreakEntry,
 } from '@/lib/streak';
 import { createServerClient } from '@/lib/supabase/server';
-import { fetchUserEntitlements, getEntitlementLimits } from '@/lib/entitlements-server';
+import { fetchUserEntitlements, getEntitlementLimits, canCreateHabit } from '@/lib/entitlements-server';
 
 import { habitFormInitialState, type HabitFormState } from './form-state';
 import type { HabitCadence, HabitSummary } from './types';
