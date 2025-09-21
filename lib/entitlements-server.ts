@@ -1,4 +1,4 @@
-import { createServerClient } from './supabase/server';
+import { createServerClient, createServiceRoleClient } from './supabase/server';
 
 export type EntitlementTier = 'free' | 'pro' | 'plus';
 
@@ -69,25 +69,41 @@ export async function fetchUserEntitlements(userId: string): Promise<UserEntitle
 export async function updateUserEntitlements(
   userId: string,
   tier: EntitlementTier,
-  source: Record<string, any> = {}
+  source: Record<string, any> = {},
+  useServiceRole: boolean = false
 ): Promise<boolean> {
-  const supabase = await createServerClient();
+  try {
+    // Use service role client for webhook operations to bypass RLS
+    const supabase = useServiceRole ? createServiceRoleClient() : await createServerClient();
 
-  const { error } = await supabase
-    .from('entitlements')
-    .upsert({
-      user_id: userId,
-      tier,
-      source,
-      updated_at: new Date().toISOString(),
-    });
+    console.log(`Updating entitlements for user ${userId} to tier ${tier} using service role: ${useServiceRole}`);
 
-  if (error) {
-    console.error('Error updating entitlements:', error);
+    const { error } = await supabase
+      .from('entitlements')
+      .upsert({
+        user_id: userId,
+        tier,
+        source,
+        updated_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      console.error('Error updating entitlements:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      return false;
+    }
+
+    console.log(`✅ Successfully updated entitlements for user ${userId} to tier ${tier}`);
+    return true;
+  } catch (error) {
+    console.error('Exception updating entitlements:', error);
     return false;
   }
-
-  return true;
 }
 
 export function getEntitlementLimits(tier: EntitlementTier): EntitlementLimits {

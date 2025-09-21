@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import Stripe from 'stripe';
 
 import { updateUserEntitlements } from '@/lib/entitlements-server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerClient, createServiceRoleClient } from '@/lib/supabase/server';
 import type { EntitlementTier } from '@/lib/entitlements-server';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -113,24 +113,30 @@ export async function POST(request: NextRequest) {
         const customerId = session.customer as string;
         console.log('✅ Customer ID:', customerId);
 
-        const supabase = await createServerClient();
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ stripe_customer_id: customerId })
-          .eq('id', userId);
+        const supabase = createServiceRoleClient();
 
-        if (profileError) {
-          console.error('❌ Error updating profile with customer ID:', profileError);
-        } else {
-          console.log('✅ Updated profile with customer ID');
+        // Try to update profile with customer ID, but don't fail if column doesn't exist
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ stripe_customer_id: customerId })
+            .eq('id', userId);
+
+          if (profileError) {
+            console.log('⚠️ Could not update profile with customer ID (column may not exist):', profileError.message);
+          } else {
+            console.log('✅ Updated profile with customer ID');
+          }
+        } catch (error) {
+          console.log('⚠️ Error updating profile (column may not exist):', error);
         }
 
-        // Update user entitlements
+        // Update user entitlements (use service role for webhooks)
         console.log('📝 Updating entitlements for user:', userId, 'to tier:', tier);
         const success = await updateUserEntitlements(userId, tier, {
           subscriptionId: session.subscription as string,
           customerId: customerId,
-        });
+        }, true); // Use service role to bypass RLS
 
         if (success) {
           console.log('✅ Successfully updated user', userId, 'to tier', tier);
@@ -169,7 +175,7 @@ export async function POST(request: NextRequest) {
             const success = await updateUserEntitlements(userId, tier, {
               subscriptionId: subscription.id,
               customerId: customerId,
-            });
+            }, true); // Use service role for webhooks
 
             if (success) {
               console.log(`Updated user ${userId} to tier ${tier}`);
@@ -194,7 +200,7 @@ export async function POST(request: NextRequest) {
         const userId = await getUserIdFromCustomerId(customerId);
 
         if (userId) {
-          const success = await updateUserEntitlements(userId, 'free', {});
+          const success = await updateUserEntitlements(userId, 'free', {}, true); // Use service role for webhooks
 
           if (success) {
             console.log(`Downgraded user ${userId} to free tier`);
