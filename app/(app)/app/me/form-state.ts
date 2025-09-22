@@ -1,4 +1,4 @@
-export type ProfileFormField = 'username' | 'timezone' | 'emoji' | 'bio' | 'is_public';
+export type ProfileFormField = 'username' | 'timezone' | 'emoji' | 'bio' | 'is_public' | 'avatar_url';
 
 export type ProfileFormState = {
   status: 'idle' | 'success' | 'error';

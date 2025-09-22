@@ -41,4 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 # database
-migrations/
+supabase/
+
+certificates
+

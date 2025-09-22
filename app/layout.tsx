@@ -20,11 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
 import { createServerClient } from "@/lib/supabase/server";
 import { signOut } from "./(auth)/actions";
@@ -146,6 +142,17 @@ export default async function RootLayout({
   const user = session?.user ?? null;
   const isAuthenticated = Boolean(user);
 
+  // Fetch user profile data if authenticated
+  let userProfile = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('avatar_url, emoji, username')
+      .eq('id', user.id)
+      .maybeSingle();
+    userProfile = profile;
+  }
+
   return (
     <html lang="en">
       <body
@@ -156,7 +163,7 @@ export default async function RootLayout({
         )}
       >
         <div className="flex min-h-dvh flex-col">
-          <SiteHeader user={user} />
+          <SiteHeader user={user} userProfile={userProfile} />
           <main className="flex-1">{children}</main>
           <SiteFooter />
         </div>
@@ -168,7 +175,13 @@ export default async function RootLayout({
   );
 }
 
-function SiteHeader({ user }: { user: User | null }) {
+function SiteHeader({ 
+  user, 
+  userProfile 
+}: { 
+  user: User | null;
+  userProfile: { avatar_url: string | null; emoji: string | null; username: string | null } | null;
+}) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:py-5">
@@ -196,7 +209,7 @@ function SiteHeader({ user }: { user: User | null }) {
             </Link>
           ))}
         </nav>
-        {user ? <UserMenu user={user} /> : <SignInButton />}
+        {user ? <UserMenu user={user} userProfile={userProfile} /> : <SignInButton />}
       </div>
     </header>
   );
@@ -210,9 +223,15 @@ function SignInButton() {
   );
 }
 
-function UserMenu({ user }: { user: User }) {
-  const initials = user.email?.[0]?.toUpperCase() ?? "U";
+function UserMenu({ 
+  user, 
+  userProfile 
+}: { 
+  user: User;
+  userProfile: { avatar_url: string | null; emoji: string | null; username: string | null } | null;
+}) {
   const displayName =
+    userProfile?.username ||
     (user.user_metadata.full_name as string | undefined) ||
     (user.user_metadata.name as string | undefined) ||
     user.email ||
@@ -232,10 +251,13 @@ function UserMenu({ user }: { user: User }) {
       <DropdownMenu>
         <DropdownMenuTrigger className="focus-visible:outline-none" asChild>
           <button className="rounded-full border border-border/60 bg-transparent p-0">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={user.user_metadata.avatar_url as string | undefined} />
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              className="h-10 w-10"
+              avatarUrl={userProfile?.avatar_url}
+              emoji={userProfile?.emoji}
+              username={userProfile?.username}
+              email={user.email}
+            />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">

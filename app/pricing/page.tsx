@@ -405,49 +405,103 @@ export default function PricingPage() {
         <Separator className="my-16" />
 
         {/* FAQ Section */}
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-8">Frequently Asked Questions</h2>
-          <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Can I change plans anytime?</CardTitle>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-zest-800 to-zest-600 bg-clip-text text-transparent mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Everything you need to know about Z3st Habits
+            </p>
+          </div>
+          
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="border-border/60 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-zest-500"></div>
+                  Can I change plans anytime?
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately.
+                <p className="text-muted-foreground leading-relaxed">
+                  Yes! You can upgrade or downgrade your plan at any time. All plan changes take effect immediately, 
+                  so you can start using new features right away.
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">What happens to my data if I downgrade?</CardTitle>
+            <Card className="border-border/60 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-zest-500"></div>
+                  What happens to my data if I downgrade?
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  Your data is always safe. If you exceed limits after downgrading, you&apos;ll need to reduce usage before creating new items.
+                <p className="text-muted-foreground leading-relaxed">
+                  Your data is always safe! If you exceed the limits of your new plan, you&apos;ll need to 
+                  reduce usage to fit within the new tier limits before creating new habits or groups.
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Do you offer refunds?</CardTitle>
+            <Card className="border-border/60 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-zest-500"></div>
+                  Is there a discount for yearly billing?
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  Yes, we offer a 30-day money-back guarantee for all paid plans.
+                <p className="text-muted-foreground leading-relaxed">
+                  Yes! Save 17% when you pay annually. That&apos;s 2 months free and better value 
+                  for your habit-building journey.
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Is there a discount for yearly billing?</CardTitle>
+            <Card className="border-border/60 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-zest-500"></div>
+                  How does the free plan work?
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  Yes! Save 17% when you pay annually. That&apos;s 2 months free!
+                <p className="text-muted-foreground leading-relaxed">
+                  The free plan includes 3 habits, basic analytics, and core features. 
+                  Perfect for getting started with habit tracking!
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-zest-500"></div>
+                  Can I cancel anytime?
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">
+                  Absolutely! You can cancel your subscription anytime from your account settings. 
+                  You&apos;ll retain access until the end of your billing period.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-zest-500"></div>
+                  Is my data secure?
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">
+                  Yes! Your data is encrypted and stored securely. We use industry-standard security 
+                  practices and never share your personal information.
                 </p>
               </CardContent>
             </Card>

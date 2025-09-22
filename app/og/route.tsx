@@ -13,8 +13,8 @@ export async function GET() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)",
-          fontFamily: "Geist Sans, sans-serif",
+          background: "linear-gradient(135deg, #fffdf6 0%, #fff2d6 100%)",
+          fontFamily: "system-ui, -apple-system, sans-serif",
         }}
       >
         <div
@@ -24,87 +24,109 @@ export async function GET() {
             alignItems: "center",
             justifyContent: "center",
             textAlign: "center",
-            maxWidth: "80%",
+            maxWidth: "85%",
           }}
         >
+          {/* Logo with proper branding */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: "2rem",
-              background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+              marginBottom: "2.5rem",
+              background: "linear-gradient(135deg, #ffb400 0%, #e59600 100%)",
               borderRadius: "50%",
-              width: "120px",
-              height: "120px",
-              boxShadow: "0 10px 25px rgba(245, 158, 11, 0.3)",
+              width: "140px",
+              height: "140px",
+              boxShadow: "0 15px 35px rgba(255, 180, 0, 0.25)",
             }}
           >
             <span
               style={{
-                fontSize: "3rem",
+                fontSize: "4rem",
                 color: "white",
                 fontWeight: "bold",
+                textShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
               }}
             >
               Z
             </span>
           </div>
 
+          {/* Main heading with improved typography */}
           <h1
             style={{
-              fontSize: "4rem",
+              fontSize: "4.5rem",
               fontWeight: "bold",
-              color: "#1f2937",
-              margin: "0 0 1rem 0",
+              color: "#201000",
+              margin: "0 0 1.5rem 0",
               lineHeight: "1.1",
+              textShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
             }}
           >
             Build Habits That
             <br />
-            <span style={{ color: "#f59e0b" }}>Actually Stick</span>
+            <span style={{ color: "#ffb400" }}>Actually Stick</span>
           </h1>
 
+          {/* Subtitle with app branding */}
           <p
             style={{
-              fontSize: "1.5rem",
-              color: "#6b7280",
-              margin: "0 0 2rem 0",
+              fontSize: "1.6rem",
+              color: "#70531f",
+              margin: "0 0 2.5rem 0",
               lineHeight: "1.4",
+              maxWidth: "600px",
             }}
           >
-            The citrus-powered ritual system for creators
+            The citrus-powered ritual system that adapts to your energy and celebrates wins
           </p>
 
+          {/* Call-to-action with improved styling */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "1rem",
-              background: "rgba(255, 255, 255, 0.8)",
-              padding: "1rem 2rem",
-              borderRadius: "50px",
-              backdropFilter: "blur(10px)",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+              gap: "1.2rem",
+              background: "rgba(255, 255, 255, 0.9)",
+              padding: "1.2rem 2.5rem",
+              borderRadius: "60px",
+              backdropFilter: "blur(15px)",
+              boxShadow: "0 8px 25px rgba(0, 0, 0, 0.1)",
+              border: "1px solid rgba(255, 180, 0, 0.2)",
             }}
           >
             <span
               style={{
-                fontSize: "0.9rem",
-                color: "#374151",
-                fontWeight: "500",
+                fontSize: "1.1rem",
+                color: "#201000",
+                fontWeight: "600",
               }}
             >
               Start Free Today
             </span>
             <div
               style={{
-                width: "8px",
-                height: "8px",
-                background: "#10b981",
+                width: "10px",
+                height: "10px",
+                background: "linear-gradient(135deg, #ffb400 0%, #e59600 100%)",
                 borderRadius: "50%",
+                boxShadow: "0 2px 4px rgba(255, 180, 0, 0.3)",
               }}
             />
+          </div>
+
+          {/* Brand tagline */}
+          <div
+            style={{
+              marginTop: "2rem",
+              fontSize: "1rem",
+              color: "#c8ad7a",
+              fontWeight: "500",
+              letterSpacing: "0.5px",
+            }}
+          >
+            z3st.app
           </div>
         </div>
       </div>

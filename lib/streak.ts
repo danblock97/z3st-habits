@@ -278,3 +278,36 @@ export function computeCurrentPeriodCount(
 
   return total;
 }
+
+export type AccountStreakOptions = {
+  timezone: string;
+  allHabitEntries: StreakEntry[][]; // Array of entries for each habit
+  now?: Date;
+  graceHour?: number;
+};
+
+export function computeAccountStreak(options: AccountStreakOptions): StreakResult {
+  const {
+    timezone,
+    allHabitEntries,
+    now = new Date(),
+    graceHour = 3,
+  } = options;
+
+  if (allHabitEntries.length === 0) {
+    return { current: 0, longest: 0 };
+  }
+
+  const todayLocalDate = getLocalDateForTZ(timezone, now, graceHour);
+  
+  // Combine all habit entries and normalize them
+  const allEntries: StreakEntry[] = allHabitEntries.flat();
+  const countsByDate = normaliseEntries(allEntries, timezone, graceHour, todayLocalDate);
+
+  // Get dates where user completed at least one habit (any count > 0)
+  const activeDates = Array.from(countsByDate.entries())
+    .filter(([, count]) => count > 0)
+    .map(([date]) => date);
+
+  return computeDailyStreak(activeDates, todayLocalDate);
+}

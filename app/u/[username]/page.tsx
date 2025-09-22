@@ -16,7 +16,7 @@ export async function generateMetadata({
   const supabase = await createServerClient();
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username, emoji, bio')
+    .select('username, emoji, bio, avatar_url')
     .eq('username', username)
     .single();
 
@@ -57,7 +57,7 @@ export default async function PublicProfile({ params }: PublicProfilePageProps) 
   const supabase = await createServerClient();
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, username, emoji, bio, is_public')
+    .select('id, username, emoji, bio, is_public, avatar_url')
     .eq('username', username)
     .single();
 
