@@ -7,8 +7,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Crown } from 'lucide-react';
 import { createServerClient } from '@/lib/supabase/server';
 import { fetchUserEntitlements, getEntitlementLimits } from '@/lib/entitlements-server';
 

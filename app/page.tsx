@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Check,
   LineChart,
-  ListChecks,
   Medal,
   ShieldCheck,
   Sparkles,
@@ -21,7 +20,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { createServerClient } from "@/lib/supabase/server";
 
 const featureCards = [
@@ -177,7 +175,7 @@ export default async function Home() {
                   <p className="mt-1 text-xl font-semibold">+18% vs last week</p>
                 </div>
                 <div className="rounded-xl border border-border/70 bg-card/60 p-4 shadow-sm">
-                  <p className="text-xs uppercase text-muted-foreground">Today's habit</p>
+                  <p className="text-xs uppercase text-muted-foreground">Today&apos;s habit</p>
                   <p className="mt-1 text-xl font-semibold">Evening walk</p>
                 </div>
               </div>

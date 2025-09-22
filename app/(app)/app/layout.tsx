@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 
 import { createServerClient } from '@/lib/supabase/server';
-import { Crown } from 'lucide-react';
 
 import { AppMobileNav, AppTabs } from './app-navigation';
 

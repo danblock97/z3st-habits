@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { createServerClient } from '@/lib/supabase/server';
-import { fetchUserEntitlements, getEntitlementLimits, getUserUsage, canDowngradeToTier } from '@/lib/entitlements-server';
+import { fetchUserEntitlements, getEntitlementLimits } from '@/lib/entitlements-server';
 import { formatLimit } from '@/lib/utils';
 import { getCurrentUsage, checkDowngradeRequirements } from '../actions';
 import { DowngradeModal } from '@/components/ui/go-plus-modal';

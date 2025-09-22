@@ -1,11 +1,9 @@
 import { Suspense } from 'react';
 import { BarChart3 } from 'lucide-react';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 
 import AnalyticsDashboard from './analytics-dashboard';
-import { fetchUserEntitlements } from '@/lib/entitlements-server';
 
 type AnalyticsPageProps = {
   searchParams: Promise<{ habit?: string }>;
