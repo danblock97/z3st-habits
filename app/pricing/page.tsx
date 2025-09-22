@@ -190,12 +190,10 @@ export default function PricingPage() {
       }
 
       if (sessionId && url) {
-        console.log('Redirecting to Stripe:', url);
         // Redirect to Stripe Checkout
         window.location.href = url;
       } else if (sessionId) {
         // Fallback to manual URL construction
-        console.log('Using fallback URL construction');
         window.location.href = `https://checkout.stripe.com/c/pay/${sessionId}`;
       } else {
         console.error('No sessionId or url returned');

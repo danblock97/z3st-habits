@@ -125,7 +125,6 @@ export async function createGroup(
   }
 
   // Create group and membership in a transaction
-  console.log('Creating group for user:', userId, 'with name:', parsed.data.name);
   const { data: groupData, error: groupError } = await supabase
     .from('groups')
     .insert({
@@ -134,8 +133,6 @@ export async function createGroup(
     })
     .select('id, name, owner_id, created_at')
     .single();
-
-  console.log('Group creation result:', { groupData, groupError });
 
   if (groupError || !groupData) {
     console.error('Group creation failed:', groupError);
@@ -147,7 +144,6 @@ export async function createGroup(
   }
 
   // Create owner membership
-  console.log('Creating membership for user:', userId, 'in group:', groupData.id);
   const { error: membershipError } = await supabase
     .from('group_members')
     .insert({
@@ -155,8 +151,6 @@ export async function createGroup(
       user_id: userId,
       role: 'owner',
     });
-
-  console.log('Membership creation result:', membershipError);
 
   if (membershipError) {
     console.error('Membership creation failed:', membershipError);

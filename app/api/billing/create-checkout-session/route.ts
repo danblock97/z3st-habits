@@ -14,12 +14,6 @@ const PLAN_TYPE_TO_PRICE_ID: Record<string, string> = {
 };
 
 // Verify price IDs are properly loaded
-console.log('Loaded price IDs:', {
-  'pro-monthly': process.env.STRIPE_PRICE_ID_PRO_MONTHLY,
-  'pro-yearly': process.env.STRIPE_PRICE_ID_PRO_YEARLY,
-  'plus-monthly': process.env.STRIPE_PRICE_ID_PLUS_MONTHLY,
-  'plus-yearly': process.env.STRIPE_PRICE_ID_PLUS_YEARLY,
-});
 
 export async function GET() {
   // Simple test endpoint to verify Stripe is working
@@ -66,14 +60,6 @@ export async function POST(request: NextRequest) {
     // Note: Authentication is handled by the fact that only logged-in users can reach the pricing page
     // The userId from the session metadata will be used to identify the user
 
-    console.log('Creating checkout session with:', {
-      planType,
-      priceId,
-      successUrl,
-      cancelUrl,
-      userId
-    });
-
     try {
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -91,13 +77,6 @@ export async function POST(request: NextRequest) {
         },
         allow_promotion_codes: true,
         billing_address_collection: 'auto',
-      });
-
-      console.log('Checkout session created successfully:', {
-        sessionId: session.id,
-        url: session.url,
-        priceId: priceId,
-        planType: planType
       });
 
       return NextResponse.json({ sessionId: session.id, url: session.url });

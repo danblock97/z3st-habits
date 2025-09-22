@@ -17,7 +17,6 @@ export default function AnalyticsDashboard({ habitId }: AnalyticsDashboardProps)
     const loadEntitlements = async () => {
       try {
         const data = await fetchEntitlementsFromAPI();
-        console.log('🎯 Entitlements fetched:', data);
         setEntitlements(data);
       } catch (error) {
         console.error('Failed to load entitlements:', error);

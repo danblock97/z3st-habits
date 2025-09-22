@@ -65,9 +65,6 @@ export default function BasicAnalytics({ habitId, entitlements }: BasicAnalytics
     setLoading(true);
     setError(null);
 
-    console.log('📊 BasicAnalytics - Entitlements received:', entitlements);
-    console.log('📊 BasicAnalytics - Analytics data received:', analyticsData);
-
     try {
       const params = new URLSearchParams();
       params.append('period', selectedPeriod);
@@ -82,13 +79,6 @@ export default function BasicAnalytics({ habitId, entitlements }: BasicAnalytics
       if (!response.ok) {
         throw new Error(result.error || 'Failed to fetch analytics');
       }
-
-      console.log('📊 API Response structure:', {
-        success: result.success,
-        hasData: !!result.data,
-        hasPeriod: !!result.period,
-        dataKeys: result.data ? Object.keys(result.data) : 'no data'
-      });
 
       setAnalyticsData(result.data);
       if (result.period) {
@@ -110,7 +100,6 @@ export default function BasicAnalytics({ habitId, entitlements }: BasicAnalytics
   };
 
   if (!entitlements || entitlements.tier === 'free') {
-    console.log('🔒 Showing upgrade prompt - Entitlements:', entitlements);
     return (
       <Card className="border-dashed">
         <CardHeader className="text-center">
@@ -133,9 +122,6 @@ export default function BasicAnalytics({ habitId, entitlements }: BasicAnalytics
 
   // If user has Pro/Plus but no data, show encouragement to add habits
   if (analyticsData === null || (analyticsData && analyticsData.dailyStats.length === 0)) {
-    console.log('📈 Showing no-data message - analyticsData:', analyticsData);
-    console.log('📈 Showing no-data message - dailyStats length:', analyticsData?.dailyStats?.length || 0);
-    console.log('📈 Showing no-data message - Entitlements:', entitlements);
     return (
       <Card className="border-dashed">
         <CardHeader className="text-center">
@@ -173,7 +159,6 @@ export default function BasicAnalytics({ habitId, entitlements }: BasicAnalytics
   }
 
   if (error) {
-    console.log('❌ Analytics error:', error);
     return (
       <Alert variant="destructive">
         <AlertTitle>Error loading analytics</AlertTitle>
@@ -183,8 +168,6 @@ export default function BasicAnalytics({ habitId, entitlements }: BasicAnalytics
   }
 
   if (!analyticsData) {
-    console.log('📊 No analytics data - Entitlements:', entitlements);
-    console.log('📊 Showing no-data Alert - analyticsData is null');
     return (
       <Alert>
         <AlertTitle>No data available</AlertTitle>

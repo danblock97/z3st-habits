@@ -83,22 +83,12 @@ export async function GET(request: NextRequest) {
       .lte('local_date', endDate.toISOString().split('T')[0])
       .order('local_date', { ascending: true });
 
-    console.log('🔍 Analytics query params:', {
-      userId,
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-      period
-    });
-
     // Filter by specific habit if provided
     if (habitId) {
       query = query.eq('habit_id', habitId);
     }
 
     const { data: checkins, error: checkinsError } = await query;
-
-    console.log('🔍 Checkins found:', checkins?.length || 0);
-    console.log('🔍 First few checkins:', checkins?.slice(0, 3));
 
     if (checkinsError) {
       console.error('Error fetching checkins:', checkinsError);
@@ -110,14 +100,6 @@ export async function GET(request: NextRequest) {
 
     // Process data for analytics
     const analyticsData = processAnalyticsData(checkins || [], startDate, endDate);
-
-    console.log('📊 Analytics data summary:', {
-      totalCheckins: analyticsData.summary.totalCheckins,
-      totalHabits: analyticsData.summary.totalHabits,
-      dailyStatsCount: analyticsData.dailyStats.length,
-      habitBreakdownCount: analyticsData.habitBreakdown.length,
-      trends: analyticsData.trends
-    });
 
     return NextResponse.json({
       success: true,

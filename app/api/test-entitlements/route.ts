@@ -13,18 +13,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`=== TESTING ENTITLEMENTS UPDATE ===`);
-    console.log(`User ID: ${userId}`);
-    console.log(`Tier: ${tier}`);
-
     // First, check if the user exists in auth.users
     const supabase = createServiceRoleClient();
     const { data: userExists, error: userError } = await supabase.auth.admin.getUserById(userId);
 
-    console.log('User exists check:', { userExists: !!userExists, error: userError });
-
     if (userError && userError.code !== 'user_not_found') {
-      console.log('Auth error (not user_not_found):', userError);
       return NextResponse.json(
         { error: 'Auth error', userId, userError },
         { status: 400 }
@@ -32,11 +25,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (userError && userError.code === 'user_not_found') {
-      console.log('User does not exist in auth.users table - this is expected for test UUIDs');
+      // User does not exist in auth.users table - this is expected for test UUIDs
     }
 
     // Test with service role
-    console.log(`Testing entitlements update for user ${userId} to tier ${tier} with service role`);
     const source = customerId
       ? { customerId, subscriptionId: "sub_1S9qPXCyXEVsMkWU1I0Rsq5G" }
       : { test: true };

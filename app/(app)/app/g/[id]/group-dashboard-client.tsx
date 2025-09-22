@@ -108,8 +108,6 @@ export function GroupDashboardClient({ initialData, groupId }: GroupDashboardCli
           filter: `id=in.(${data.members.map(m => m.userId).join(',')})`,
         },
         async (payload) => {
-          console.log('Profile updated:', payload);
-
           // Refresh member data when profiles are updated
           const { data: membersData } = await supabase
             .from('group_members')

@@ -52,8 +52,6 @@ export default async function BillingPage() {
       // Call the portal API and redirect
       try {
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-        console.log('Calling portal API with URL:', `${siteUrl}/api/billing/portal`);
-        console.log('Customer ID being sent:', customerId);
 
         const response = await fetch(`${siteUrl}/api/billing/portal`, {
           method: 'POST',

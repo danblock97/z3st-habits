@@ -109,18 +109,12 @@ export async function updateUserEntitlements(
     // Use service role client for webhook operations to bypass RLS
     const supabase = useServiceRole ? createServiceRoleClient() : await createServerClient();
 
-    console.log(`🔄 Updating entitlements for user ${userId} to tier ${tier}`);
-    console.log(`📋 Source data:`, source);
-    console.log(`🛡️ Using service role: ${useServiceRole}`);
-
     // First check if user already has entitlements
     const { data: existingEntitlements } = await supabase
       .from('entitlements')
       .select('tier, source')
       .eq('user_id', userId)
       .maybeSingle();
-
-    console.log(`📊 Existing entitlements:`, existingEntitlements);
 
     const { error } = await supabase
       .from('entitlements')
@@ -148,9 +142,6 @@ export async function updateUserEntitlements(
       .select('tier, source, updated_at')
       .eq('user_id', userId)
       .maybeSingle();
-
-    console.log(`✅ Database updated successfully:`, updatedEntitlements);
-    console.log(`🎯 Tier change: ${existingEntitlements?.tier || 'none'} → ${tier}`);
 
     return true;
   } catch (error) {
@@ -382,25 +373,16 @@ export async function autoCleanupResources(userId: string, newTier: EntitlementT
   const supabase = createServiceRoleClient();
   const limits = getEntitlementLimits(newTier);
 
-  console.log(`🚀 Starting auto-cleanup for user ${userId} to ${newTier} tier`);
-  console.log(`📊 Tier limits:`, limits);
-
   try {
     // Get current usage with service role client to ensure accurate counts
     const usage = await getUserUsageWithServiceRole(userId);
-    console.log(`📊 Current usage for user ${userId}:`, usage);
-    console.log(`📈 Tier limits:`, limits);
 
     // Check if any cleanup is needed
     const habitCleanupNeeded = limits.maxActiveHabits !== -1 && usage.habits > limits.maxActiveHabits;
     const groupCleanupNeeded = limits.maxGroups !== -1 && usage.groups > limits.maxGroups;
 
-    console.log(`🧹 Cleanup needed - Habits: ${habitCleanupNeeded}, Groups: ${groupCleanupNeeded}`);
-
     // 1. Clean up excess habits
     if (limits.maxActiveHabits !== -1 && usage.habits > limits.maxActiveHabits) {
-      console.log(`🗑️ Starting habit cleanup: ${usage.habits} habits, limit ${limits.maxActiveHabits}, need to delete ${usage.habits - limits.maxActiveHabits}`);
-
       // Get all habits ordered by creation date (oldest first)
       const { data: habits, error: habitsError } = await supabase
         .from('habits')
@@ -414,16 +396,12 @@ export async function autoCleanupResources(userId: string, newTier: EntitlementT
       }
 
       if (!habits || habits.length === 0) {
-        console.log('⚠️ No habits found for cleanup');
         return true; // No cleanup needed is still success
       }
 
-      console.log(`📋 Found ${habits.length} habits to process`);
       const excessHabits = habits.slice(limits.maxActiveHabits);
-      console.log(`🗑️ Excess habits to delete: ${excessHabits.length}`);
 
       for (const habit of excessHabits) {
-        console.log(`🗑️ Deleting habit: ${habit.title || 'Unknown'} (${habit.id})`);
         // Delete the habit (consistent with group deletion)
         const { error: deleteError } = await supabase
           .from('habits')
@@ -433,16 +411,12 @@ export async function autoCleanupResources(userId: string, newTier: EntitlementT
         if (deleteError) {
           console.error(`❌ Error deleting habit ${habit.id}:`, deleteError);
           return false;
-        } else {
-          console.log(`✅ Deleted habit ${habit.id} (was: ${habit.title || 'Unknown'})`);
         }
       }
     }
 
     // 2. Clean up excess groups
     if (limits.maxGroups !== -1 && usage.groups > limits.maxGroups) {
-      console.log(`🗑️ Starting group cleanup: ${usage.groups} groups, limit ${limits.maxGroups}, need to delete ${usage.groups - limits.maxGroups}`);
-
       // Get all groups ordered by creation date (oldest first)
       const { data: groups, error: groupsError } = await supabase
         .from('groups')
@@ -456,19 +430,14 @@ export async function autoCleanupResources(userId: string, newTier: EntitlementT
       }
 
       if (!groups || groups.length === 0) {
-        console.log('⚠️ No groups found for cleanup');
         return true; // No cleanup needed is still success
       }
 
-      console.log(`📋 Found ${groups.length} groups to process`);
       const excessGroups = groups.slice(limits.maxGroups);
-      console.log(`🗑️ Excess groups to delete: ${excessGroups.length}`);
 
       for (const group of excessGroups) {
-        console.log(`🗑️ Deleting group: ${group.name} (${group.id})`);
         // Delete group and all related data (members, invites, etc.)
         await deleteGroupCascade(supabase, group.id, userId);
-        console.log(`✅ Deleted group ${group.name} (${group.id})`);
       }
     }
 
@@ -491,8 +460,6 @@ export async function autoCleanupResources(userId: string, newTier: EntitlementT
           const memberCount = (group.group_members as unknown[]).length;
 
           if (memberCount > limits.maxGroupMembers) {
-            console.log(`Cleaning up excess members in group ${group.name}: ${memberCount - limits.maxGroupMembers} members need to be removed`);
-
             // Get members ordered by join date (oldest first)
             const { data: members, error: membersError } = await supabase
               .from('group_members')
@@ -513,8 +480,6 @@ export async function autoCleanupResources(userId: string, newTier: EntitlementT
 
                 if (removeError) {
                   console.error(`Error removing member ${member.id} from group ${group.id}:`, removeError);
-                } else {
-                  console.log(`Removed member ${member.user_id} from group ${group.name}`);
                 }
               }
             }
@@ -523,8 +488,6 @@ export async function autoCleanupResources(userId: string, newTier: EntitlementT
       }
     }
 
-    console.log(`✅ Auto-cleanup completed for user ${userId}`);
-    console.log(`🎉 Final state - Habits: ${usage.habits - (habitCleanupNeeded ? usage.habits - limits.maxActiveHabits : 0)}, Groups: ${usage.groups - (groupCleanupNeeded ? usage.groups - limits.maxGroups : 0)}`);
     return true; // Success
   } catch (error) {
     console.error('❌ Error during auto-cleanup:', error);

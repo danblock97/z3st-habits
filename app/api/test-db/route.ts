@@ -3,8 +3,6 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 
 export async function GET() {
   try {
-    console.log('Testing database connection with service role...');
-
     const supabase = createServiceRoleClient();
 
     // Test basic connection
