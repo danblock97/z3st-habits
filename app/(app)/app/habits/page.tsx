@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { createServerClient } from '@/lib/supabase/server';
-import { computeCurrentPeriodCount, computeStreak } from '@/lib/streak';
+import { computeCurrentPeriodCount, computeStreak, computeAccountStreak } from '@/lib/streak';
 
 import { HabitsClient } from './habits-client';
 import type { HabitSummary } from './types';
@@ -138,11 +138,27 @@ export default async function HabitsPage() {
     return toHabitSummary(habit, checkins, timezone);
   });
 
+  // Calculate account-level streak
+  const allHabitEntries = habits.map((habit) => {
+    const checkins = checkinsByHabit.get(habit.id) ?? [];
+    return checkins.map((checkin) => ({
+      localDate: checkin.local_date,
+      count: checkin.count,
+    }));
+  });
+
+  const accountStreak = computeAccountStreak({
+    timezone,
+    allHabitEntries,
+    now: new Date(),
+  });
+
   return (
     <HabitsClient
       habits={habits}
       timezone={timezone}
       defaultEmoji={defaultEmoji}
+      accountStreak={accountStreak}
     />
   );
 }

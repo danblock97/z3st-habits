@@ -38,6 +38,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { checkStreakRisk } from "@/lib/streak-risk";
 import { useEntitlements } from "@/lib/entitlements";
+import type { StreakResult } from "@/lib/streak";
 
 import { completeHabitToday, createHabit, deleteHabit } from "./actions";
 import { habitFormInitialState } from "./form-state";
@@ -57,6 +58,7 @@ type HabitsClientProps = {
   habits: HabitSummary[];
   timezone: string;
   defaultEmoji: string;
+  accountStreak: StreakResult;
 };
 
 const EMOJI_CHOICES = ["🍋", "🍊", "🍉", "🍇", "🍓", "🍑", "🥝", "🥥", "🌿", "⭐", "🔥", "⚡"];
@@ -85,7 +87,7 @@ const EXAMPLE_HABITS = [
   { title: "Plan next week", emoji: "📅", cadence: "weekly" as const, targetPerPeriod: 1 },
 ];
 
-export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientProps) {
+export function HabitsClient({ habits, timezone, defaultEmoji, accountStreak }: HabitsClientProps) {
   const [optimisticHabits, sendOptimistic] = useOptimistic<HabitListItem[], OptimisticAction>(
     habits,
     (state, action) => {
@@ -295,6 +297,19 @@ export function HabitsClient({ habits, timezone, defaultEmoji }: HabitsClientPro
           <p className="text-muted-foreground">
             Keep rituals aligned with your {timezone} rhythm. Build them once and let Z3st keep the streak alive.
           </p>
+          {accountStreak.current > 0 && (
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <Sparkles className="h-4 w-4" />
+              <span className="font-medium">
+                {accountStreak.current} day{accountStreak.current !== 1 ? 's' : ''} streak
+              </span>
+              {accountStreak.longest > accountStreak.current && (
+                <span className="text-muted-foreground">
+                  (Best: {accountStreak.longest} day{accountStreak.longest !== 1 ? 's' : ''})
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <Button size="lg" onClick={() => setIsDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
