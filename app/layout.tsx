@@ -28,6 +28,8 @@ import {
 import { cn } from "@/lib/utils";
 import { createServerClient } from "@/lib/supabase/server";
 import { signOut } from "./(auth)/actions";
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 import "./globals.css";
 
@@ -159,6 +161,8 @@ export default async function RootLayout({
           <SiteFooter />
         </div>
         {isAuthenticated ? <MobileBottomNav /> : null}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
