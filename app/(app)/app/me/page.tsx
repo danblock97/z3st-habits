@@ -25,7 +25,7 @@ export default async function MePage() {
 
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, username, timezone, emoji, bio, is_public')
+    .select('id, username, timezone, emoji, bio, is_public, avatar_url')
     .eq('id', session.user.id)
     .maybeSingle();
 

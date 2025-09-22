@@ -1,4 +1,5 @@
 import { ShareButton } from '@/components/ui/share-button';
+import { UserAvatar } from '@/components/user-avatar';
 import { createServerClient } from '@/lib/supabase/server';
 import { computeAccountStreak } from '@/lib/streak';
 import type { StreakEntry } from '@/lib/streak';
@@ -10,6 +11,7 @@ type PublicProfile = {
   emoji: string | null;
   bio: string | null;
   is_public: boolean | null;
+  avatar_url: string | null;
 };
 
 type HabitWithStats = {
@@ -101,8 +103,13 @@ export async function PublicProfilePage({ profile }: { profile: PublicProfile })
             <div className="flex items-center gap-6">
               {/* Profile Avatar with citrus styling */}
               <div className="relative">
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-zest-200 to-zest-300 text-4xl shadow-lg ring-4 ring-zest-100">
-                  {profile.emoji || '🍋'}
+                <div className="h-24 w-24 rounded-full shadow-lg ring-4 ring-zest-100 overflow-hidden">
+                  <UserAvatar
+                    className="h-full w-full text-4xl"
+                    avatarUrl={profile.avatar_url}
+                    emoji={profile.emoji}
+                    username={profile.username}
+                  />
                 </div>
                 {/* Decorative ring */}
                 <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-zest-400/20 to-chart-2/20 blur-sm"></div>

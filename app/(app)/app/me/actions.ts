@@ -31,6 +31,11 @@ const profileSchema = z.object({
     .optional()
     .transform((value) => (value ? value : null)),
   is_public: z.boolean().optional(),
+  avatar_url: z
+    .string()
+    .url('Avatar URL must be a valid URL.')
+    .optional()
+    .transform((value) => (value ? value : null)),
 });
 
 type ProfileInput = z.infer<typeof profileSchema>;
@@ -45,6 +50,7 @@ export async function updateProfile(
     emoji: formData.get('emoji') ?? undefined,
     bio: formData.get('bio') ?? undefined,
     is_public: formData.get('is_public') === 'true' ? true : formData.get('is_public') === 'false' ? false : undefined,
+    avatar_url: formData.get('avatar_url') ?? undefined,
   });
 
   if (!parsed.success) {
@@ -84,12 +90,15 @@ export async function updateProfile(
     emoji: parsed.data.emoji ?? null,
   };
 
-  // Only update bio and is_public if they were provided (these columns might not exist yet)
+  // Only update bio, is_public, and avatar_url if they were provided (these columns might not exist yet)
   if (parsed.data.bio !== undefined) {
     updateData.bio = parsed.data.bio ?? null;
   }
   if (parsed.data.is_public !== undefined) {
     updateData.is_public = parsed.data.is_public ?? false;
+  }
+  if (parsed.data.avatar_url !== undefined) {
+    updateData.avatar_url = parsed.data.avatar_url ?? null;
   }
 
   const { data, error } = await supabase
@@ -282,4 +291,98 @@ export async function checkDowngradeRequirements(targetTier: 'free' | 'pro' | 'p
   }
 
   return canDowngradeToTier(entitlements, targetTier, usage);
+}
+
+// Upload avatar image to Supabase storage
+export async function uploadAvatar(formData: FormData): Promise<{ success: boolean; message: string; avatarUrl?: string }> {
+  const supabase = await createServerClient();
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    return {
+      success: false,
+      message: 'You must be signed in to upload an avatar.',
+    };
+  }
+
+  const file = formData.get('avatar') as File;
+  if (!file) {
+    return {
+      success: false,
+      message: 'No file provided.',
+    };
+  }
+
+  // Validate file type
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    return {
+      success: false,
+      message: 'Invalid file type. Please upload a PNG, JPEG, or WebP image.',
+    };
+  }
+
+  // Validate file size (5MB max)
+  const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+  if (file.size > maxSize) {
+    return {
+      success: false,
+      message: 'File size too large. Please upload an image smaller than 5MB.',
+    };
+  }
+
+  const userId = session.user.id;
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userId}/avatar.${fileExt}`;
+
+  try {
+    // Create a server client with service role for storage operations
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Upload the file to Supabase storage using admin client
+    const { data, error } = await supabaseAdmin.storage
+      .from('avatars')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true, // Replace existing file
+      });
+
+    if (error) {
+      console.error('Storage upload error:', error);
+      return {
+        success: false,
+        message: 'Failed to upload avatar. Please try again.',
+      };
+    }
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabaseAdmin.storage
+      .from('avatars')
+      .getPublicUrl(fileName);
+
+    return {
+      success: true,
+      message: 'Avatar uploaded successfully.',
+      avatarUrl: publicUrl,
+    };
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    return {
+      success: false,
+      message: 'An unexpected error occurred. Please try again.',
+    };
+  }
 }

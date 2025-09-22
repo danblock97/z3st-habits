@@ -104,37 +104,84 @@ export async function GET(
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#f8fafc',
-          backgroundImage: 'radial-gradient(circle at 1px 1px, #e2e8f0 1px, transparent 0)',
-          backgroundSize: '20px 20px',
-          fontFamily: 'Inter, sans-serif',
+          background: 'linear-gradient(135deg, #fffdf6 0%, #fff2d6 100%)',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
+        {/* Header with app logo */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '30px',
+            left: '30px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #ffb400 0%, #e59600 100%)',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(255, 180, 0, 0.2)',
+            }}
+          >
+            <span
+              style={{
+                fontSize: '1.2rem',
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+            >
+              Z
+            </span>
+          </div>
+          <span
+            style={{
+              fontSize: '1.2rem',
+              fontWeight: '600',
+              color: '#201000',
+            }}
+          >
+            Z3st Habits
+          </span>
+        </div>
+
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             textAlign: 'center',
-            padding: '40px',
-            borderRadius: '20px',
-            backgroundColor: 'white',
-            boxShadow: '0 20px 40px -8px rgba(0, 0, 0, 0.1)',
-            maxWidth: '800px',
+            padding: '50px',
+            borderRadius: '24px',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+            border: '1px solid rgba(255, 180, 0, 0.1)',
+            maxWidth: '850px',
             width: '100%',
+            margin: '0 30px',
           }}
         >
+          {/* Habit header */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
-              marginBottom: '20px',
+              gap: '20px',
+              marginBottom: '30px',
             }}
           >
             <div
               style={{
-                fontSize: '60px',
+                fontSize: '70px',
+                filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1))',
               }}
             >
               {habit.emoji || '🎯'}
@@ -142,18 +189,20 @@ export async function GET(
             <div>
               <div
                 style={{
-                  fontSize: '36px',
+                  fontSize: '42px',
                   fontWeight: 'bold',
-                  color: '#1e293b',
-                  marginBottom: '4px',
+                  color: '#201000',
+                  marginBottom: '6px',
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
                 }}
               >
                 {habit.title}
               </div>
               <div
                 style={{
-                  fontSize: '18px',
-                  color: '#64748b',
+                  fontSize: '20px',
+                  color: '#70531f',
+                  fontWeight: '500',
                 }}
               >
                 by {profile.username}
@@ -161,32 +210,39 @@ export async function GET(
             </div>
           </div>
 
+          {/* Stats with improved styling */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '32px',
-              marginBottom: '24px',
+              gap: '40px',
+              marginBottom: '30px',
             }}
           >
             <div
               style={{
                 textAlign: 'center',
+                padding: '20px 30px',
+                background: 'linear-gradient(135deg, #fff2d6 0%, #ffe3aa 100%)',
+                borderRadius: '16px',
+                border: '1px solid rgba(255, 180, 0, 0.2)',
               }}
             >
               <div
                 style={{
-                  fontSize: '32px',
+                  fontSize: '36px',
                   fontWeight: 'bold',
-                  color: '#10b981',
+                  color: '#ffb400',
+                  marginBottom: '4px',
                 }}
               >
                 {currentStreak}
               </div>
               <div
                 style={{
-                  fontSize: '14px',
-                  color: '#64748b',
+                  fontSize: '16px',
+                  color: '#70531f',
+                  fontWeight: '500',
                 }}
               >
                 day{currentStreak !== 1 ? 's' : ''} streak
@@ -196,21 +252,27 @@ export async function GET(
             <div
               style={{
                 textAlign: 'center',
+                padding: '20px 30px',
+                background: 'linear-gradient(135deg, #f0ff9a 0%, #e8f573 100%)',
+                borderRadius: '16px',
+                border: '1px solid rgba(139, 198, 62, 0.2)',
               }}
             >
               <div
                 style={{
-                  fontSize: '32px',
+                  fontSize: '36px',
                   fontWeight: 'bold',
-                  color: '#3b82f6',
+                  color: '#8bc63e',
+                  marginBottom: '4px',
                 }}
               >
                 {habit.target_per_period}
               </div>
               <div
                 style={{
-                  fontSize: '14px',
-                  color: '#64748b',
+                  fontSize: '16px',
+                  color: '#4a5c2a',
+                  fontWeight: '500',
                 }}
               >
                 target
@@ -218,32 +280,38 @@ export async function GET(
             </div>
           </div>
 
-          {/* Sparkline */}
+          {/* Sparkline with improved styling */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
-              marginBottom: '16px',
+              gap: '20px',
+              marginBottom: '20px',
+              padding: '20px',
+              background: 'rgba(255, 255, 255, 0.7)',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 180, 0, 0.1)',
             }}
           >
             <div
               style={{
-                fontSize: '14px',
-                color: '#64748b',
-                minWidth: '40px',
+                fontSize: '16px',
+                color: '#70531f',
+                minWidth: '80px',
+                fontWeight: '500',
               }}
             >
               Last 7 days
             </div>
-            <svg width={width} height={height} style={{ marginLeft: '8px' }}>
+            <svg width={width} height={height} style={{ marginLeft: '12px' }}>
               <path
                 d={pathData}
                 fill="none"
-                stroke="#3b82f6"
-                strokeWidth="2"
+                stroke="#ffb400"
+                strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                filter="drop-shadow(0 2px 4px rgba(255, 180, 0, 0.2))"
               />
               {sparklineData.map((value, index) => {
                 if (value > 0) {
@@ -254,14 +322,28 @@ export async function GET(
                       key={index}
                       cx={x}
                       cy={y}
-                      r="3"
-                      fill="#3b82f6"
+                      r="4"
+                      fill="#ffb400"
+                      filter="drop-shadow(0 2px 4px rgba(255, 180, 0, 0.3))"
                     />
                   );
                 }
                 return null;
               })}
             </svg>
+          </div>
+
+          {/* Footer with app branding */}
+          <div
+            style={{
+              marginTop: '20px',
+              fontSize: '14px',
+              color: '#c8ad7a',
+              fontWeight: '500',
+              letterSpacing: '0.5px',
+            }}
+          >
+            Track your habits at z3st.app
           </div>
         </div>
       </div>

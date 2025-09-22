@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useActionState, useEffect, useRef, useState, startTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { ShareButton } from '@/components/ui/share-button';
 import { cn } from '@/lib/utils';
 
-import { updateProfile } from './actions';
+import { updateProfile, uploadAvatar } from './actions';
 import {
   profileFormInitialState,
   type ProfileFormState,
@@ -22,6 +22,7 @@ type Profile = {
   emoji: string | null;
   is_public: boolean | null;
   bio: string | null;
+  avatar_url: string | null;
 };
 
 type ProfileWithDefaults = Profile & {
@@ -38,6 +39,9 @@ export function ProfileForm({ profile }: { profile: Profile | Record<string, str
   const [timezone, setTimezone] = useState(String(profile.timezone ?? ''));
   const [isPublic, setIsPublic] = useState(Boolean(profile.is_public ?? false));
   const [bio, setBio] = useState(String(profile.bio ?? ''));
+  const [avatarUrl, setAvatarUrl] = useState(String(profile.avatar_url ?? ''));
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarUploadMessage, setAvatarUploadMessage] = useState('');
 
   const profileWithDefaults: ProfileWithDefaults = {
     username: (profile.username as string) ?? null,
@@ -45,6 +49,7 @@ export function ProfileForm({ profile }: { profile: Profile | Record<string, str
     emoji: (profile.emoji as string) ?? null,
     is_public: Boolean(profile.is_public ?? false),
     bio: (profile.bio as string) ?? '',
+    avatar_url: (profile.avatar_url as string) ?? null,
   };
   const hasAutoFilledTimezone = useRef<boolean>(
     Boolean(profile.timezone && profile.timezone !== 'UTC'),
@@ -56,7 +61,8 @@ export function ProfileForm({ profile }: { profile: Profile | Record<string, str
     setTimezone(profileWithDefaults.timezone ?? '');
     setIsPublic(profileWithDefaults.is_public);
     setBio(profileWithDefaults.bio);
-  }, [profileWithDefaults.username, profileWithDefaults.emoji, profileWithDefaults.timezone, profileWithDefaults.is_public, profileWithDefaults.bio]);
+    setAvatarUrl(profileWithDefaults.avatar_url ?? '');
+  }, [profileWithDefaults.username, profileWithDefaults.emoji, profileWithDefaults.timezone, profileWithDefaults.is_public, profileWithDefaults.bio, profileWithDefaults.avatar_url]);
 
   useEffect(() => {
     if (hasAutoFilledTimezone.current) {
@@ -70,6 +76,46 @@ export function ProfileForm({ profile }: { profile: Profile | Record<string, str
 
     hasAutoFilledTimezone.current = true;
   }, []);
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    setAvatarUploadMessage('');
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      const result = await uploadAvatar(formData);
+      
+      if (result.success && result.avatarUrl) {
+        setAvatarUrl(result.avatarUrl);
+        setAvatarUploadMessage('Avatar uploaded successfully!');
+        
+        // Update the profile with the new avatar URL
+        const updateFormData = new FormData();
+        updateFormData.append('username', username);
+        updateFormData.append('timezone', timezone);
+        updateFormData.append('emoji', emoji);
+        updateFormData.append('bio', bio);
+        updateFormData.append('is_public', isPublic ? 'true' : 'false');
+        updateFormData.append('avatar_url', result.avatarUrl);
+        
+        // Trigger the profile update within a transition
+        startTransition(() => {
+          formAction(updateFormData);
+        });
+      } else {
+        setAvatarUploadMessage(result.message);
+      }
+    } catch (error) {
+      setAvatarUploadMessage('Failed to upload avatar. Please try again.');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const showSuccess = state.status === 'success' && state.message;
   const showError = state.status === 'error' && state.message;
@@ -109,6 +155,58 @@ export function ProfileForm({ profile }: { profile: Profile | Record<string, str
         {state.fieldErrors?.username ? (
           <p className="text-xs text-destructive">{state.fieldErrors.username}</p>
         ) : null}
+      </div>
+
+      <div className="grid gap-2">
+        <label htmlFor="avatar" className="text-sm font-medium text-foreground">
+          Profile Picture
+        </label>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Profile picture"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-2xl text-muted-foreground">
+                  {emoji || '👤'}
+                </span>
+              )}
+            </div>
+            {isUploadingAvatar && (
+              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+          <div className="flex-1">
+            <input
+              type="file"
+              id="avatar"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+            <label
+              htmlFor="avatar"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 cursor-pointer"
+            >
+              {isUploadingAvatar ? 'Uploading...' : avatarUrl ? 'Change Picture' : 'Upload Picture'}
+            </label>
+            <p className="text-xs text-muted-foreground mt-1">
+              PNG, JPEG, or WebP. Max 5MB.
+            </p>
+            {avatarUploadMessage && (
+              <p className={`text-xs mt-1 ${avatarUploadMessage.includes('success') ? 'text-emerald-600' : 'text-destructive'}`}>
+                {avatarUploadMessage}
+              </p>
+            )}
+          </div>
+        </div>
+        <input type="hidden" name="avatar_url" value={avatarUrl} />
       </div>
 
       <div className="grid gap-2">
