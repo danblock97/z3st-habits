@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Download, TrendingUp, Target, Flame, BarChart3, FileText } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area, ComposedChart, Legend } from 'recharts';
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area, ComposedChart, Legend } from 'recharts';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { useEntitlements } from '@/lib/entitlements';
 
 interface AnalyticsData {
   summary: {
@@ -52,7 +51,7 @@ interface AnalyticsData {
 
 interface AdvancedAnalyticsProps {
   habitId?: string;
-  entitlements?: { tier: string; source: any; updatedAt: string } | null;
+  entitlements?: { tier: string; source: Record<string, unknown>; updatedAt: string } | null;
 }
 
 export default function AdvancedAnalytics({ habitId, entitlements }: AdvancedAnalyticsProps) {
@@ -68,7 +67,7 @@ export default function AdvancedAnalytics({ habitId, entitlements }: AdvancedAna
     setError(null);
 
     try {
-      let params = new URLSearchParams();
+      const params = new URLSearchParams();
 
       if (selectedPeriod === 'custom' && dateFrom && dateTo) {
         params.set('period', 'custom');
@@ -110,7 +109,7 @@ export default function AdvancedAnalytics({ habitId, entitlements }: AdvancedAna
 
   const handleExportCSV = async () => {
     try {
-      let params = new URLSearchParams();
+      const params = new URLSearchParams();
 
       if (period === 'custom' && customDateRange.from && customDateRange.to) {
         params.set('dateFrom', customDateRange.from);
@@ -396,7 +395,7 @@ export default function AdvancedAnalytics({ habitId, entitlements }: AdvancedAna
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {habitBreakdown.map((habit, index) => (
+                {habitBreakdown.map((habit) => (
                   <div key={habit.habitId} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">

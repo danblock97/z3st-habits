@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { useEntitlements } from '@/lib/entitlements';
 
 interface AnalyticsData {
   summary: {
@@ -52,7 +51,7 @@ interface AnalyticsData {
 
 interface BasicAnalyticsProps {
   habitId?: string;
-  entitlements?: { tier: string; source: any; updatedAt: string } | null;
+  entitlements?: { tier: string; source: Record<string, unknown>; updatedAt: string } | null;
 }
 
 export default function BasicAnalytics({ habitId, entitlements }: BasicAnalyticsProps) {
@@ -359,7 +358,7 @@ export default function BasicAnalytics({ habitId, entitlements }: BasicAnalytics
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {habitBreakdown.map((habit, index) => (
+                {habitBreakdown.map((habit) => (
                   <div key={habit.habitId} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">

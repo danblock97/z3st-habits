@@ -10,7 +10,7 @@ interface AnalyticsDashboardProps {
 }
 
 export default function AnalyticsDashboard({ habitId }: AnalyticsDashboardProps) {
-  const [entitlements, setEntitlements] = useState<{ tier: string; source: any; updatedAt: string } | null>(null);
+  const [entitlements, setEntitlements] = useState<{ tier: string; source: Record<string, unknown>; updatedAt: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
