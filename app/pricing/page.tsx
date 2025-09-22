@@ -125,7 +125,7 @@ export default function PricingPage() {
     }
 
     return (
-      <div className="h-12 flex flex-col items-center justify-center">
+      <div className={`${isDisabled ? 'h-32' : 'h-12'} flex flex-col items-center justify-center`}>
         <Button
           variant={buttonVariant}
           className={buttonClass}
@@ -327,7 +327,7 @@ export default function PricingPage() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <ul className="space-y-3">
                 {PRO_FEATURES.map((feature, index) => (
                   <li key={index} className="flex items-center gap-2">
@@ -336,8 +336,10 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              {renderPlanButton('pro', isYearly ? 'pro-yearly' : 'pro-monthly')}
-              <p className="text-xs text-center text-muted-foreground">
+              <div className="mt-8">
+                {renderPlanButton('pro', isYearly ? 'pro-yearly' : 'pro-monthly')}
+              </div>
+              <p className="text-xs text-center text-muted-foreground mt-4">
                 Cancel anytime • No setup fees
               </p>
             </CardContent>
@@ -368,7 +370,7 @@ export default function PricingPage() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <ul className="space-y-3">
                 {PLUS_FEATURES.map((feature, index) => (
                   <li key={index} className="flex items-center gap-2">
@@ -377,8 +379,10 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              {renderPlanButton('plus', isYearly ? 'plus-yearly' : 'plus-monthly')}
-              <p className="text-xs text-center text-muted-foreground">
+              <div className="mt-8">
+                {renderPlanButton('plus', isYearly ? 'plus-yearly' : 'plus-monthly')}
+              </div>
+              <p className="text-xs text-center text-muted-foreground mt-4">
                 Cancel anytime • No setup fees
               </p>
             </CardContent>
