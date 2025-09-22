@@ -185,6 +185,19 @@ export function canAddGroupMember(entitlements: UserEntitlements, currentCount: 
   return limits.maxGroupMembers === -1 || currentCount < limits.maxGroupMembers;
 }
 
+// Analytics feature checks
+export function canAccessAnalytics(entitlements: UserEntitlements): boolean {
+  return entitlements.tier === 'pro' || entitlements.tier === 'plus';
+}
+
+export function canAccessAdvancedAnalytics(entitlements: UserEntitlements): boolean {
+  return entitlements.tier === 'plus';
+}
+
+export function canExportData(entitlements: UserEntitlements): boolean {
+  return entitlements.tier === 'plus';
+}
+
 // Types for usage checking
 export interface UsageStats {
   habits: number;
