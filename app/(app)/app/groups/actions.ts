@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { createServerClient } from '@/lib/supabase/server';
 import { fetchUserEntitlements, canCreateGroup, getEntitlementLimits } from '@/lib/entitlements-server';
+import { checkAndAwardBadges } from '@/lib/badges';
 
 import { groupFormInitialState, type GroupFormState } from './form-state';
 import type { GroupSummary } from './types';
@@ -162,6 +163,12 @@ export async function createGroup(
   }
 
   const group = toGroupSummary(groupData);
+
+  // Check for badges after successful creation
+  await checkAndAwardBadges({
+    userId,
+    action: 'group_created',
+  });
 
   revalidatePath('/app/groups');
 
@@ -321,6 +328,13 @@ export async function acceptInvite(token: string) {
     .from('invites')
     .update({ status: 'accepted' })
     .eq('id', invite.id);
+
+  // Check for badges after joining group
+  await checkAndAwardBadges({
+    userId,
+    groupId: invite.group_id,
+    action: 'group_joined',
+  });
 
   const group = Array.isArray(invite.groups) ? invite.groups[0] : invite.groups;
 

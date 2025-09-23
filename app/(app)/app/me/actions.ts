@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { createServerClient } from '@/lib/supabase/server';
 import { fetchUserEntitlements, getUserUsage, canDowngradeToTier } from '@/lib/entitlements-server';
+import { checkAndAwardBadges } from '@/lib/badges';
 import type { ProfileFormState } from './form-state';
 
 const profileSchema = z.object({
@@ -122,6 +123,15 @@ export async function updateProfile(
       message: error?.message ?? 'We could not update your profile right now. Please try again.',
     };
   }
+
+  // Check for badges after profile update
+  await checkAndAwardBadges({
+    userId: session.user.id,
+    action: 'profile_updated',
+    metadata: {
+      is_public: parsed.data.is_public,
+    },
+  });
 
   revalidatePath('/app/me');
 

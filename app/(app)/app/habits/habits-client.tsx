@@ -38,6 +38,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { checkStreakRisk } from "@/lib/streak-risk";
 import { useEntitlements } from "@/lib/entitlements";
+import { useToast } from "@/lib/toast";
 import type { StreakResult } from "@/lib/streak";
 
 import { completeHabitToday, createHabit, deleteHabit } from "./actions";
@@ -88,6 +89,7 @@ const EXAMPLE_HABITS = [
 ];
 
 export function HabitsClient({ habits, timezone, defaultEmoji, accountStreak }: HabitsClientProps) {
+  const { showToast } = useToast();
   const [optimisticHabits, sendOptimistic] = useOptimistic<HabitListItem[], OptimisticAction>(
     habits,
     (state, action) => {
@@ -228,6 +230,19 @@ export function HabitsClient({ habits, timezone, defaultEmoji, accountStreak }: 
         if (result.success) {
           handleSetTodayCount(habit.id, result.periodCount);
 
+          // Show badge notifications if any were awarded
+          if (result.badges && result.badges.length > 0) {
+            result.badges.forEach(badge => {
+              if (badge.awarded && badge.message) {
+                showToast({
+                  title: '🏆 Badge Unlocked!',
+                  description: badge.message,
+                  type: 'success',
+                  duration: 6000,
+                });
+              }
+            });
+          }
         } else {
           handleSetTodayCount(habit.id, originalCount);
         }
@@ -241,7 +256,7 @@ export function HabitsClient({ habits, timezone, defaultEmoji, accountStreak }: 
         });
       }
     },
-    [pendingCheckins, handleOptimisticIncrement, handleSetTodayCount],
+    [pendingCheckins, handleOptimisticIncrement, handleSetTodayCount, showToast],
   );
 
   const hasHabits = sortedHabits.length > 0;

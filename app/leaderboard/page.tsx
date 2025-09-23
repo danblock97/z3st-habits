@@ -11,6 +11,11 @@ export type LeaderboardEntry = {
   longestStreak: number;
   totalHabits: number;
   avatar_url: string | null;
+  badgeCount: number;
+  badges: Array<{
+    kind: string;
+    awarded_at: string;
+  }>;
 };
 
 export default async function LeaderboardPage() {
@@ -19,7 +24,7 @@ export default async function LeaderboardPage() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Get all public profiles with their habits and checkins
+  // Get all public profiles with their habits, checkins, and badges
   const { data: publicProfiles, error: profilesError } = await supabase
     .from('profiles')
     .select(`
@@ -37,6 +42,10 @@ export default async function LeaderboardPage() {
           local_date,
           count
         )
+      ),
+      badges (
+        kind,
+        awarded_at
       )
     `)
     .eq('is_public', true)
@@ -74,6 +83,8 @@ export default async function LeaderboardPage() {
 
     // Only include users with ongoing streaks (currentStreak > 0)
     if (streakResult.current > 0) {
+      const badges = Array.isArray(profile.badges) ? profile.badges : [];
+      
       leaderboardEntries.push({
         id: profile.id,
         username: profile.username,
@@ -82,16 +93,21 @@ export default async function LeaderboardPage() {
         longestStreak: streakResult.longest,
         totalHabits: habits.length,
         avatar_url: profile.avatar_url,
+        badgeCount: badges.length,
+        badges: badges,
       });
     }
   }
 
-  // Sort by current streak (descending), then by longest streak (descending)
+  // Sort by current streak (descending), then by longest streak (descending), then by badge count (descending)
   leaderboardEntries.sort((a, b) => {
     if (a.currentStreak !== b.currentStreak) {
       return b.currentStreak - a.currentStreak;
     }
-    return b.longestStreak - a.longestStreak;
+    if (a.longestStreak !== b.longestStreak) {
+      return b.longestStreak - a.longestStreak;
+    }
+    return b.badgeCount - a.badgeCount;
   });
 
   return (

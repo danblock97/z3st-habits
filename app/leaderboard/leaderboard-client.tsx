@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Trophy, Flame, Users, Settings, Crown, Medal, Star } from 'lucide-react';
+import { Search, Trophy, Flame, Users, Settings, Crown, Medal, Star, Award } from 'lucide-react';
 import type { LeaderboardEntry } from './page';
 
 interface LeaderboardClientProps {
@@ -85,12 +85,12 @@ export function LeaderboardClient({ entries, currentUserId }: LeaderboardClientP
             <Trophy className="w-8 h-8 text-primary leaderboard-float" style={{ animationDelay: '1s' }} />
           </div>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            See who&apos;s on fire! 🔥 These amazing people are crushing their habits with ongoing streaks.
+            See who&apos;s on fire! 🔥 These amazing people are crushing their habits with ongoing streaks and earning badges.
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
@@ -115,6 +115,22 @@ export function LeaderboardClient({ entries, currentUserId }: LeaderboardClientP
                   <p className="text-sm text-muted-foreground">Highest Streak</p>
                   <p className="text-2xl font-bold text-zest-700">
                     {entries.length > 0 ? `${entries[0].currentStreak} days` : '0 days'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-purple-200/20 bg-gradient-to-br from-purple-100/50 to-transparent">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-200/50 rounded-lg">
+                  <Award className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Most Badges</p>
+                  <p className="text-2xl font-bold text-purple-700">
+                    {entries.length > 0 ? `${Math.max(...entries.map(e => e.badgeCount))}` : '0'}
                   </p>
                 </div>
               </div>
@@ -161,6 +177,13 @@ export function LeaderboardClient({ entries, currentUserId }: LeaderboardClientP
               Find My Account
             </Button>
           )}
+          
+          <Button asChild variant="outline">
+            <Link href="/app/badges">
+              <Award className="w-4 h-4 mr-2" />
+              View Badges
+            </Link>
+          </Button>
           
           <Button asChild variant="outline">
             <Link href="/app/me">
@@ -262,9 +285,19 @@ export function LeaderboardClient({ entries, currentUserId }: LeaderboardClientP
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {entry.totalHabits} habit{entry.totalHabits !== 1 ? 's' : ''}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-muted-foreground">
+                            {entry.totalHabits} habit{entry.totalHabits !== 1 ? 's' : ''}
+                          </p>
+                          {entry.badgeCount > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Award className="w-3 h-3 text-purple-500" />
+                              <span className="text-xs text-purple-600 font-medium">
+                                {entry.badgeCount} badge{entry.badgeCount !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Streak Info */}
@@ -284,6 +317,47 @@ export function LeaderboardClient({ entries, currentUserId }: LeaderboardClientP
                           <p className="text-xs text-muted-foreground">
                             Best: {entry.longestStreak}
                           </p>
+                        )}
+                        
+                        {/* Recent Badges */}
+                        {entry.badges.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {entry.badges.slice(0, 3).map((badge) => (
+                              <div
+                                key={badge.kind}
+                                className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full"
+                                title={`${badge.kind.replace('_', ' ')} - ${new Date(badge.awarded_at).toLocaleDateString()}`}
+                              >
+                                {badge.kind === 'first_streak' && '🌱'}
+                                {badge.kind === 'week_warrior' && '⚔️'}
+                                {badge.kind === 'month_master' && '👑'}
+                                {badge.kind === 'century_club' && '💯'}
+                                {badge.kind === 'streak_legend' && '🏆'}
+                                {badge.kind === 'habit_creator' && '✨'}
+                                {badge.kind === 'habit_collector' && '📚'}
+                                {badge.kind === 'habit_master' && '🎓'}
+                                {badge.kind === 'daily_dedication' && '📅'}
+                                {badge.kind === 'consistency_king' && '🎯'}
+                                {badge.kind === 'group_joiner' && '🤝'}
+                                {badge.kind === 'group_leader' && '👑'}
+                                {badge.kind === 'social_butterfly' && '🦋'}
+                                {badge.kind === 'public_profile' && '🌍'}
+                                {badge.kind === 'early_adopter' && '🚀'}
+                                {badge.kind === 'pro_upgrade' && '⭐'}
+                                {badge.kind === 'plus_upgrade' && '💎'}
+                                {badge.kind === 'perfect_week' && '🌟'}
+                                {badge.kind === 'comeback_kid' && '🔄'}
+                                {badge.kind === 'night_owl' && '🦉'}
+                                {badge.kind === 'early_bird' && '🐦'}
+                                {!['first_streak', 'week_warrior', 'month_master', 'century_club', 'streak_legend', 'habit_creator', 'habit_collector', 'habit_master', 'daily_dedication', 'consistency_king', 'group_joiner', 'group_leader', 'social_butterfly', 'public_profile', 'early_adopter', 'pro_upgrade', 'plus_upgrade', 'perfect_week', 'comeback_kid', 'night_owl', 'early_bird'].includes(badge.kind) && '🏅'}
+                              </div>
+                            ))}
+                            {entry.badges.length > 3 && (
+                              <div className="text-xs text-purple-600 px-2 py-1">
+                                +{entry.badges.length - 3} more
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

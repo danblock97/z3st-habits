@@ -11,6 +11,7 @@ import {
 } from '@/lib/streak';
 import { createServerClient } from '@/lib/supabase/server';
 import { fetchUserEntitlements, canCreateHabit } from '@/lib/entitlements-server';
+import { checkAndAwardBadges } from '@/lib/badges';
 
 import { habitFormInitialState, type HabitFormState } from './form-state';
 import type { HabitCadence, HabitSummary } from './types';
@@ -192,6 +193,12 @@ export async function createHabit(
 
   const habit = toHabitSummary(data);
 
+  // Check for badges after successful creation
+  await checkAndAwardBadges({
+    userId,
+    action: 'habit_created',
+  });
+
   revalidatePath('/app/habits');
 
   return {
@@ -207,6 +214,11 @@ type CompleteHabitResult =
       periodCount: number;
       currentStreak: number;
       longestStreak: number;
+      badges?: Array<{
+        awarded: boolean;
+        badgeKind?: string;
+        message?: string;
+      }>;
     }
   | {
       success: false;
@@ -377,6 +389,13 @@ export async function completeHabitToday(params: { habitId: string }): Promise<C
     );
   }
 
+  // Check for badges after successful completion
+  const badgeResults = await checkAndAwardBadges({
+    userId,
+    habitId,
+    action: 'habit_completed',
+  });
+
   revalidatePath('/app/habits');
 
   return {
@@ -384,6 +403,7 @@ export async function completeHabitToday(params: { habitId: string }): Promise<C
     periodCount,
     currentStreak: streak.current,
     longestStreak: streak.longest,
+    badges: badgeResults,
   };
 }
 
