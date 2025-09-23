@@ -7,6 +7,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { fetchUserEntitlements, getUserUsage, canDowngradeToTier } from '@/lib/entitlements-server';
 import { checkAndAwardBadges } from '@/lib/badges';
 import type { ProfileFormState } from './form-state';
+import type { ReminderPreferencesState } from './reminder-preferences-form-state';
 
 const profileSchema = z.object({
   username: z
@@ -138,6 +139,95 @@ export async function updateProfile(
   return {
     status: 'success',
     message: 'Profile updated successfully.',
+  };
+}
+
+const reminderPreferencesSchema = z.object({
+  email_reminders_enabled: z.boolean(),
+  streak_reminders_enabled: z.boolean(),
+  reminder_frequency: z.enum(['daily', 'weekly', 'never']),
+  quiet_hours_enabled: z.boolean(),
+  quiet_start: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
+  quiet_end: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
+});
+
+type ReminderPreferencesInput = z.infer<typeof reminderPreferencesSchema>;
+
+export async function updateReminderPreferences(
+  _prevState: ReminderPreferencesState,
+  formData: FormData,
+): Promise<ReminderPreferencesState> {
+  const parsed = reminderPreferencesSchema.safeParse({
+    email_reminders_enabled: formData.get('email_reminders_enabled') === 'true',
+    streak_reminders_enabled: formData.get('streak_reminders_enabled') === 'true',
+    reminder_frequency: formData.get('reminder_frequency'),
+    quiet_hours_enabled: formData.get('quiet_hours_enabled') === 'true',
+    quiet_start: formData.get('quiet_start'),
+    quiet_end: formData.get('quiet_end'),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors: ReminderPreferencesState['fieldErrors'] = {};
+    const flattened = parsed.error.flatten().fieldErrors;
+
+    (Object.keys(flattened) as Array<keyof ReminderPreferencesInput>).forEach((key) => {
+      const errorMessage = flattened[key]?.[0];
+      if (errorMessage) {
+        fieldErrors[key] = [errorMessage];
+      }
+    });
+
+    return {
+      ..._prevState,
+      status: 'error',
+      message: 'Please fix the highlighted fields.',
+      fieldErrors,
+    };
+  }
+
+  const supabase = await createServerClient();
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    return {
+      ..._prevState,
+      status: 'error',
+      message: 'You must be signed in to update your preferences.',
+    };
+  }
+
+  const reminderPreferences = {
+    email_reminders_enabled: parsed.data.email_reminders_enabled,
+    streak_reminders_enabled: parsed.data.streak_reminders_enabled,
+    reminder_frequency: parsed.data.reminder_frequency,
+    quiet_hours: {
+      enabled: parsed.data.quiet_hours_enabled,
+      start: parsed.data.quiet_start,
+      end: parsed.data.quiet_end,
+    },
+  };
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ reminder_preferences: reminderPreferences })
+    .eq('id', session.user.id);
+
+  if (error) {
+    return {
+      ..._prevState,
+      status: 'error',
+      message: error.message ?? 'Failed to update reminder preferences.',
+    };
+  }
+
+  revalidatePath('/app/me');
+  return {
+    ..._prevState,
+    status: 'success',
+    message: 'Reminder preferences updated successfully.',
   };
 }
 

@@ -12,6 +12,7 @@ import { fetchUserEntitlements, getEntitlementLimits } from '@/lib/entitlements-
 
 import { ProfileForm } from './profile-form';
 import { BillingCard } from './billing-card';
+import { ReminderPreferencesForm } from './reminder-preferences';
 
 export default async function MePage() {
   const supabase = await createServerClient();
@@ -25,7 +26,7 @@ export default async function MePage() {
 
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, username, timezone, emoji, bio, is_public, avatar_url')
+    .select('id, username, timezone, emoji, bio, is_public, avatar_url, reminder_preferences')
     .eq('id', session.user.id)
     .maybeSingle();
 
@@ -115,6 +116,19 @@ export default async function MePage() {
           limits={limits}
         />
       </div>
+
+      <ReminderPreferencesForm 
+        preferences={ensuredProfile?.reminder_preferences || {
+          email_reminders_enabled: true,
+          streak_reminders_enabled: true,
+          reminder_frequency: 'daily',
+          quiet_hours: {
+            enabled: false,
+            start: '22:00',
+            end: '08:00'
+          }
+        }}
+      />
     </div>
   );
 }
