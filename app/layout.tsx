@@ -55,7 +55,7 @@ const FOOTER_LINKS: { href: string; label: string }[] = [
 const APP_NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/app", label: "Overview", icon: LayoutDashboard },
   { href: "/app/habits", label: "Habits", icon: ListChecks },
-  { href: "/app/insights", label: "Insights", icon: LineChart },
+  { href: "/app/analytics", label: "Analytics", icon: LineChart },
   { href: "/app/me", label: "Profile", icon: UserRound },
 ];
 
