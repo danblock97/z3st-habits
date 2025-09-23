@@ -12,6 +12,7 @@ const APP_NAV_ITEMS = [
   { href: '/app/habits', label: 'Habits', iconName: 'ListChecks' },
   { href: '/app/analytics', label: 'Analytics', iconName: 'BarChart3' },
   { href: '/app/groups', label: 'Groups', iconName: 'Users' },
+  { href: '/leaderboard', label: 'Leaderboard', iconName: 'Trophy' },
   { href: '/app/me', label: 'Me', iconName: 'UserRound' },
   { href: '/pricing', label: 'Upgrade', iconName: 'Crown' },
 ];

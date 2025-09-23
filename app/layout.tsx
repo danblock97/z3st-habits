@@ -8,6 +8,7 @@ import {
   LineChart,
   ListChecks,
   UserRound,
+  Trophy,
 } from "lucide-react";
 import { Geist, Geist_Mono } from "next/font/google";
 
@@ -56,6 +57,7 @@ const APP_NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/app", label: "Overview", icon: LayoutDashboard },
   { href: "/app/habits", label: "Habits", icon: ListChecks },
   { href: "/app/analytics", label: "Analytics", icon: LineChart },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/app/me", label: "Profile", icon: UserRound },
 ];
 

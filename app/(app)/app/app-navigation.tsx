@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ListChecks, UserRound, Users, Crown, BarChart3 } from "lucide-react";
+import { ListChecks, UserRound, Users, Crown, BarChart3, Trophy } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ const iconMap: Record<string, LucideIcon> = {
   UserRound,
   Crown,
   BarChart3,
+  Trophy,
 };
 
 type AppNavigationProps = {
