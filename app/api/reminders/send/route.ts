@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 import { computeStreak, computeCurrentPeriodCount, type StreakEntry } from '@/lib/streak';
 import { checkStreakRisk } from '@/lib/streak-risk';
 import { getLocalDateForTZ } from '@/lib/dates';
@@ -12,6 +13,8 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Email service configuration - using Supabase SMTP
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@z3st.app';
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 interface UserWithHabits {
   id: string;
@@ -52,29 +55,23 @@ async function sendEmail(to: string, subject: string, html: string) {
       return { success: true };
     }
 
-    // In production, use Supabase's built-in email sending with your Resend SMTP
-    // This leverages your existing Resend SMTP integration
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: 'signup',
-      email: to,
-      password: 'temp-password-for-email-only',
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://z3st.app'}/app/habits`,
-      },
+    if (!resend) {
+      throw new Error('Resend API key is not configured');
+    }
+
+    const { data, error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
     });
 
     if (error) {
-      console.error('Supabase email error:', error);
-      // Fallback: just log the email for debugging
-      console.log(`📧 EMAIL WOULD BE SENT (Production Fallback):`);
-      console.log(`   To: ${to}`);
-      console.log(`   Subject: ${subject}`);
-      console.log(`   Content: ${html.substring(0, 200)}...`);
-      return { success: true };
+      throw error;
     }
 
-    console.log(`📧 Email sent to ${to} via Supabase SMTP (Resend integration)`);
-    return { success: true };
+    console.log(`📧 Email sent to ${to} via Resend${data?.id ? ` (id: ${data.id})` : ''}`);
+    return { success: true, id: data?.id };
   } catch (error) {
     console.error('Failed to send email:', error);
     // Fallback: just log the email for debugging
@@ -82,7 +79,7 @@ async function sendEmail(to: string, subject: string, html: string) {
     console.log(`   To: ${to}`);
     console.log(`   Subject: ${subject}`);
     console.log(`   Content: ${html.substring(0, 200)}...`);
-    return { success: true };
+    return { success: false };
   }
 }
 
@@ -414,7 +411,12 @@ export async function GET(request: NextRequest) {
           atRiskHabits
         );
 
-        await sendEmail(userEmail, emailContent.subject, emailContent.html);
+        const sendResult = await sendEmail(userEmail, emailContent.subject, emailContent.html);
+
+        if (!sendResult.success) {
+          console.log(`Skipping reminder update for ${userEmail}: email send failed`);
+          continue;
+        }
 
         // Update reminder timestamp
         await supabase
