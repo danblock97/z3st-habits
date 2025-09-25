@@ -59,14 +59,16 @@ export async function checkAndAwardBadges(context: BadgeCheckContext): Promise<B
 async function checkHabitCreatedBadges(supabase: Awaited<ReturnType<typeof createServerClient>>, context: BadgeCheckContext): Promise<BadgeResult[]> {
   const results: BadgeResult[] = [];
 
-  // Check if user has any habits (first habit created)
+  // Check if user has any active habits (habit creation milestone)
   const { data: habits } = await supabase
     .from('habits')
     .select('id')
     .eq('owner_id', context.userId)
     .eq('is_archived', false);
 
-  if (habits && habits.length === 1) {
+  const totalHabits = habits?.length ?? 0;
+
+  if (totalHabits >= 1) {
     const awarded = await awardBadge(supabase, context.userId, 'habit_creator');
     if (awarded) {
       results.push({
@@ -77,8 +79,8 @@ async function checkHabitCreatedBadges(supabase: Awaited<ReturnType<typeof creat
     }
   }
 
-  // Check for habit collector (5 habits)
-  if (habits && habits.length === 5) {
+  // Check for habit collector (5 active habits)
+  if (totalHabits >= 5) {
     const awarded = await awardBadge(supabase, context.userId, 'habit_collector');
     if (awarded) {
       results.push({
@@ -89,8 +91,8 @@ async function checkHabitCreatedBadges(supabase: Awaited<ReturnType<typeof creat
     }
   }
 
-  // Check for habit master (10 habits)
-  if (habits && habits.length === 10) {
+  // Check for habit master (10 active habits)
+  if (totalHabits >= 10) {
     const awarded = await awardBadge(supabase, context.userId, 'habit_master');
     if (awarded) {
       results.push({
@@ -116,7 +118,7 @@ async function checkHabitCompletedBadges(supabase: Awaited<ReturnType<typeof cre
   const totalCheckins = checkins?.length || 0;
 
   // Daily dedication (50 check-ins)
-  if (totalCheckins === 50) {
+  if (totalCheckins >= 50) {
     const awarded = await awardBadge(supabase, context.userId, 'daily_dedication');
     if (awarded) {
       results.push({
@@ -128,7 +130,7 @@ async function checkHabitCompletedBadges(supabase: Awaited<ReturnType<typeof cre
   }
 
   // Consistency king (500 check-ins)
-  if (totalCheckins === 500) {
+  if (totalCheckins >= 500) {
     const awarded = await awardBadge(supabase, context.userId, 'consistency_king');
     if (awarded) {
       results.push({
@@ -189,7 +191,7 @@ async function checkStreakBadges(supabase: Awaited<ReturnType<typeof createServe
   ];
 
   for (const milestone of streakMilestones) {
-    if (streakResult.current === milestone.days) {
+    if (streakResult.current >= milestone.days) {
       const awarded = await awardBadge(supabase, context.userId, milestone.badge);
       if (awarded) {
         results.push({
@@ -207,13 +209,15 @@ async function checkStreakBadges(supabase: Awaited<ReturnType<typeof createServe
 async function checkGroupJoinedBadges(supabase: Awaited<ReturnType<typeof createServerClient>>, context: BadgeCheckContext): Promise<BadgeResult[]> {
   const results: BadgeResult[] = [];
 
-  // Check group joiner (first group joined)
+  // Check group joiner (group membership milestone)
   const { data: memberships } = await supabase
     .from('group_members')
     .select('group_id')
     .eq('user_id', context.userId);
 
-  if (memberships && memberships.length === 1) {
+  const membershipCount = memberships?.filter(membership => membership.group_id).length ?? 0;
+
+  if (membershipCount >= 1) {
     const awarded = await awardBadge(supabase, context.userId, 'group_joiner');
     if (awarded) {
       results.push({
@@ -224,8 +228,8 @@ async function checkGroupJoinedBadges(supabase: Awaited<ReturnType<typeof create
     }
   }
 
-  // Check social butterfly (3 groups)
-  if (memberships && memberships.length === 3) {
+  // Check social butterfly (3 group memberships)
+  if (membershipCount >= 3) {
     const awarded = await awardBadge(supabase, context.userId, 'social_butterfly');
     if (awarded) {
       results.push({
@@ -242,13 +246,15 @@ async function checkGroupJoinedBadges(supabase: Awaited<ReturnType<typeof create
 async function checkGroupCreatedBadges(supabase: Awaited<ReturnType<typeof createServerClient>>, context: BadgeCheckContext): Promise<BadgeResult[]> {
   const results: BadgeResult[] = [];
 
-  // Check group leader (first group created)
+  // Check group leader (group creation milestone)
   const { data: ownedGroups } = await supabase
     .from('groups')
     .select('id')
     .eq('owner_id', context.userId);
 
-  if (ownedGroups && ownedGroups.length === 1) {
+  const ownedGroupCount = ownedGroups?.length ?? 0;
+
+  if (ownedGroupCount >= 1) {
     const awarded = await awardBadge(supabase, context.userId, 'group_leader');
     if (awarded) {
       results.push({

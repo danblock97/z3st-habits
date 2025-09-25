@@ -39,7 +39,7 @@ export default async function BadgesPage() {
     {
       id: 'first_streak',
       name: 'Getting Started',
-      description: 'Complete your first habit streak',
+      description: 'Complete a habit streak',
       emoji: '🌱',
       category: 'streak',
       rarity: 'common',
@@ -86,7 +86,7 @@ export default async function BadgesPage() {
     {
       id: 'habit_creator',
       name: 'Habit Creator',
-      description: 'Create your first habit',
+      description: 'Create a habit',
       emoji: '✨',
       category: 'habits',
       rarity: 'common',
@@ -133,7 +133,7 @@ export default async function BadgesPage() {
     {
       id: 'group_joiner',
       name: 'Group Joiner',
-      description: 'Join your first group',
+      description: 'Join a group',
       emoji: '🤝',
       category: 'social',
       rarity: 'common',
@@ -142,7 +142,7 @@ export default async function BadgesPage() {
     {
       id: 'group_leader',
       name: 'Group Leader',
-      description: 'Create your first group',
+      description: 'Create a group',
       emoji: '👑',
       category: 'social',
       rarity: 'common',
