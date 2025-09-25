@@ -317,7 +317,7 @@ async function awardBadge(supabase: Awaited<ReturnType<typeof createServerClient
       .select('id')
       .eq('user_id', userId)
       .eq('kind', badgeKind)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return false; // Already awarded
