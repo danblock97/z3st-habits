@@ -32,7 +32,7 @@ const buttonVariants = cva(
       size: "default",
     },
   }
-) as const;
+);
 
 function Button({
   className,

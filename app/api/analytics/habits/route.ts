@@ -257,11 +257,12 @@ function processAnalyticsData(
     : null;
 
   // Calculate trends
-  const dailyAverage = dailyStats.length > 0
-    ? Math.round(dailyStats.reduce((sum, d) => sum + d.totalCheckins, 0) / dailyStats.length * 10) / 10
+  const dailyAverageBase = dailyStats.length > 0
+    ? dailyStats.reduce((sum, d) => sum + d.totalCheckins, 0) / dailyStats.length
     : 0;
 
-  const weeklyAverage = dailyAverage * 7;
+  const dailyAverage = Math.round(dailyAverageBase * 10) / 10;
+  const weeklyAverage = Math.round(dailyAverageBase * 7);
 
   const bestDay = dailyStats.length > 0
     ? dailyStats.reduce((best, current) =>
