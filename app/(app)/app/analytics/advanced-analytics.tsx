@@ -480,7 +480,7 @@ export default function AdvancedAnalytics({ habitId, entitlements }: AdvancedAna
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Weekly Average</span>
-                  <span className="font-bold">{trends.weeklyAverage} check-ins</span>
+                  <span className="font-bold">{Math.round(trends.weeklyAverage)} check-ins</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Consistency Score</span>

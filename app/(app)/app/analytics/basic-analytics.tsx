@@ -384,7 +384,7 @@ export default function BasicAnalytics({ habitId, entitlements }: BasicAnalytics
                 <CardTitle>Weekly Average</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{trends.weeklyAverage}</div>
+                <div className="text-3xl font-bold">{Math.round(trends.weeklyAverage)}</div>
                 <p className="text-sm text-muted-foreground">check-ins per week</p>
               </CardContent>
             </Card>
