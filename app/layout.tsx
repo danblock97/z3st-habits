@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { LucideIcon } from "lucide-react";
@@ -23,12 +24,38 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UserAvatar } from "@/components/user-avatar";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { createServerClient } from "@/lib/supabase/server";
+import { THEME_STORAGE_KEY } from "@/lib/theme";
 import { signOut } from "./(auth)/actions";
-import { Analytics } from "@vercel/analytics/next"
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./globals.css";
+
+const THEME_INITIALIZER = `(() => {
+  try {
+    const storageKey = ${JSON.stringify(THEME_STORAGE_KEY)};
+    const root = document.documentElement;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const storedTheme = window.localStorage.getItem(storageKey);
+    const resolvedTheme = storedTheme === 'dark' || storedTheme === 'light'
+      ? storedTheme
+      : mediaQuery.matches
+        ? 'dark'
+        : 'light';
+
+    if (resolvedTheme === 'dark') {
+      root.classList.add('dark');
+      root.style.colorScheme = 'dark';
+    } else {
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
+    }
+  } catch (error) {
+    // Ignore errors accessing localStorage (e.g., private mode)
+  }
+})();`;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -156,7 +183,12 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script id="theme-initializer" strategy="beforeInteractive">
+          {THEME_INITIALIZER}
+        </Script>
+      </head>
       <body
         className={cn(
           geistSans.variable,
@@ -211,7 +243,10 @@ function SiteHeader({
             </Link>
           ))}
         </nav>
-        {user ? <UserMenu user={user} userProfile={userProfile} /> : <SignInButton />}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ThemeToggle />
+          {user ? <UserMenu user={user} userProfile={userProfile} /> : <SignInButton />}
+        </div>
       </div>
     </header>
   );
