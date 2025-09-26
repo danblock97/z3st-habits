@@ -1,0 +1,19 @@
+Z3st Habits Proprietary License
+
+Copyright (c) 2025 Daniel Block.
+
+All rights reserved. This software and all associated assets (“Software”) are the proprietary property of Daniel Block.
+
+You may view, run, and evaluate the Software solely for personal, non-commercial purposes. Any other use is strictly prohibited without the prior written consent of the copyright holder. In particular, you must not:
+
+1. Copy, reproduce, or redistribute the Software or any portion of it in any medium.
+2. Modify, adapt, translate, or create derivative works based on the Software.
+3. Sell, license, sublicense, rent, lease, or otherwise commercialize the Software.
+4. Remove or alter any proprietary notices or labels contained in the Software.
+
+No patent, trademark, or other intellectual property rights are granted by this license. All implied rights are expressly disclaimed.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+By accessing or using the Software, you agree to these terms. If you do not agree, you must discontinue all use of the Software.
+
