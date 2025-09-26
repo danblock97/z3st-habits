@@ -1,0 +1,57 @@
+name: "Feature request"
+description: "Share an idea that would make Z3st Habits better"
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting improvements! Tell us what you want to see so we can understand the problem and the impact.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have searched [existing issues](https://github.com/danblock97/z3st-habits/issues?q=is%3Aopen+is%3Aissue+label%3Aenhancement) to avoid duplicates.
+          required: true
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: Short headline for your idea.
+      placeholder: "Allow scheduled automation for habit groups"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What challenge or workflow gap are you experiencing?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like to see? Screenshots or sketches welcome.
+    validations:
+      required: false
+  - type: textarea
+    id: value
+    attributes:
+      label: Impact
+      description: Who benefits and how often would this be used?
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any workarounds or other options you tried.
+  - type: textarea
+    id: references
+    attributes:
+      label: Related issues, links, or context
+      description: Link to other GitHub issues, discussions, or market research if relevant.

@@ -1,0 +1,66 @@
+name: "Bug report"
+description: "Report an issue or regression in Z3st Habits"
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us improve Z3st Habits. Please follow the template so we can reproduce and fix the issue quickly.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight Checklist
+      description: Please confirm you have completed the following steps.
+      options:
+        - label: I have searched [existing issues](https://github.com/danblock97/z3st-habits/issues?q=is%3Aopen+is%3Aissue+label%3Abug) to avoid duplicates.
+          required: true
+        - label: I am using the latest version of the app (or have noted the version below).
+          required: false
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser/device, app version, environment (prod/staging), etc.
+      placeholder: "macOS 14.5, Safari 17.2, Production"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Clear description of the bug and why it is a problem.
+      placeholder: "When I try to mark a habit as complete, the UI shows an error toast..."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide the exact steps. Include screenshots or recordings if helpful.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and errors (optional)
+      description: Paste console logs, network errors, stack traces, etc.
+      render: shell
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Links, hypotheses, or anything else that helps us debug.

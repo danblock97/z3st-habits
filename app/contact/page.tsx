@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { ArrowLeft, Mail, MessageSquare } from "lucide-react";
+import { ArrowLeft, Github, LifeBuoy, PenSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = {
   title: "Contact Us",
-  description: "Get in touch with the Z3st Habits team for support, feedback, bug reports, or view our roadmap.",
+  description: "Connect with the Z3st Habits team for support and contribute via GitHub issues.",
 };
 
 export default function ContactPage() {
   return (
-    <div className="container mx-auto px-4 py-16 max-w-4xl">
-      <div className="mb-8">
+    <div className="container mx-auto px-4 py-16 max-w-5xl">
+      <div className="mb-10">
         <Button asChild variant="ghost" size="sm">
           <Link href="/">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -20,116 +20,115 @@ export default function ContactPage() {
         </Button>
       </div>
 
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">Get in Touch</h1>
-        <p className="text-lg text-muted-foreground">
-          We&apos;d love to hear from you. Send us a message and we&apos;ll respond as soon as possible.
+      <div className="text-center mb-14 space-y-4">
+        <span className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-1 text-xs font-medium uppercase tracking-[0.2em] text-accent-foreground">
+          We listen. We build together.
+        </span>
+        <h1 className="text-4xl font-bold tracking-tight md:text-5xl">How can we help?</h1>
+        <p className="text-base text-muted-foreground md:text-lg">
+          Need assistance or want to shape the roadmap? Reach out to our team, or open an issue on GitHub so the whole community benefits.
         </p>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Email Support
+      <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+        <Card className="shadow-sm">
+          <CardHeader className="space-y-2">
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              <Github className="h-6 w-6" />
+              GitHub Issues Hub
             </CardTitle>
             <CardDescription>
-              For technical issues, account problems, or general questions
+              Centralize your feedback with structured issues and stay informed on updates.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Our support team typically responds within 24 hours during business days.
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Report bugs, request features, or follow progress in one place. Use the templates so we can act quickly.
             </p>
-            <Button asChild className="w-full">
-              <a href="mailto:support@z3st.app">
-                support@z3st.app
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Feature Requests
-            </CardTitle>
-            <CardDescription>
-              Have an idea for a new feature or improvement?
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              We love hearing about features that would make Z3st even better for creators.
-            </p>
-            <Button asChild variant="outline" className="w-full">
-              <a href="mailto:feedback@z3st.app">
-                feedback@z3st.app
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Other Ways to Reach Us</CardTitle>
-            <CardDescription>
-              We&apos;re here to help with whatever you need
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <h4 className="font-semibold mb-2">Business Inquiries</h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  For partnerships, press, or business opportunities
-                </p>
-                <a href="mailto:business@z3st.app" className="text-primary hover:underline">
-                  business@z3st.app
-                </a>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Bug Reports</h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Found something not working as expected?
-                </p>
-                <Button asChild variant="outline" size="sm">
-                  <a href="https://roomy-pick-4e2.notion.site/27505d85e58381cfab76cefbd1c2a6ab?pvs=105" target="_blank" rel="noopener noreferrer">
-                    Report Bug
-                  </a>
-                </Button>
-              </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button asChild>
+                <Link href="https://github.com/danblock97/z3st-habits/issues/new?template=bug-report.yml" target="_blank" rel="noopener noreferrer">
+                  Report a Bug
+                </Link>
+              </Button>
+              <Button asChild variant="secondary">
+                <Link href="https://github.com/danblock97/z3st-habits/issues/new?template=feature-request.yml" target="_blank" rel="noopener noreferrer">
+                  Request a Feature
+                </Link>
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Roadmap & Feature Voting</CardTitle>
-            <CardDescription>
-              See what we&apos;re working on and vote on upcoming features
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Check out our public roadmap, see what features are planned, and vote on what you&apos;d like to see next.
-            </p>
-            <Button asChild className="w-full">
-              <a href="https://roomy-pick-4e2.notion.site/27505d85e58381cfab76cefbd1c2a6ab?pvs=105" target="_blank" rel="noopener noreferrer">
-                View Roadmap & Vote
-              </a>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="https://github.com/danblock97/z3st-habits/issues" target="_blank" rel="noopener noreferrer">
+                Browse Existing Issues
+              </Link>
             </Button>
           </CardContent>
         </Card>
+
+        <div className="grid gap-6">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LifeBuoy className="h-5 w-5" />
+                Support Team
+              </CardTitle>
+              <CardDescription>Private help from the team within one business day.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-muted-foreground">
+              <p>Prefer a direct line? We respond within 24 hours during the work week.</p>
+              <div className="grid gap-2">
+                <Button asChild variant="outline">
+                  <a href="mailto:support@z3st.app">support@z3st.app</a>
+                </Button>
+                <span className="text-xs text-muted-foreground/80">
+                  For billing, account access, or anything you don&apos;t want public.
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PenSquare className="h-5 w-5" />
+                Product Feedback
+              </CardTitle>
+              <CardDescription>Share input that guides our roadmap before it goes public.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-muted-foreground">
+              <p>Want a private conversation? Email us and we&apos;ll loop in the product team.</p>
+              <div className="grid gap-2">
+                <Button asChild variant="secondary">
+                  <a href="mailto:feedback@z3st.app">feedback@z3st.app</a>
+                </Button>
+                <span className="text-xs text-muted-foreground/80">
+                  We&apos;ll triage and add ideas into GitHub when ready.
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      <div className="mt-12 text-center">
-        <p className="text-sm text-muted-foreground">
-          Response time: Usually within 24 hours<br />
-          Business days: Monday - Friday, 9 AM - 6 PM GMT
-        </p>
+      <Card className="mt-10 border-dashed shadow-none">
+        <CardHeader>
+          <CardTitle>Partnerships & Press</CardTitle>
+          <CardDescription>We&apos;re open to collaborations that help creators thrive.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1 text-sm text-muted-foreground">
+            <p>For sponsorships, media features, or other business inquiries.</p>
+            <p>We aim to reply within two business days.</p>
+          </div>
+          <Button asChild variant="outline">
+            <a href="mailto:business@z3st.app">business@z3st.app</a>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="mt-12 text-center text-sm text-muted-foreground">
+        <p>Response time: Within 24 hours · Monday - Friday, 9 AM - 6 PM GMT</p>
+        <p className="mt-2 text-xs text-muted-foreground/70">We monitor GitHub daily and triage requests twice a week.</p>
       </div>
     </div>
   );
