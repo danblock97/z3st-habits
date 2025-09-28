@@ -3,276 +3,282 @@
 /* Removed old glow animation that created thick bars */
 
 @keyframes pulse-glow {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 
-      0 0 5px rgba(255, 180, 0, 0.5),
-      0 0 10px rgba(255, 180, 0, 0.3),
-      0 0 15px rgba(255, 180, 0, 0.2);
-  }
-  50% {
-    transform: scale(1.02);
-    box-shadow: 
-      0 0 10px rgba(255, 180, 0, 0.7),
-      0 0 20px rgba(255, 180, 0, 0.5),
-      0 0 30px rgba(255, 180, 0, 0.3),
-      0 0 40px rgba(255, 180, 0, 0.2);
-  }
+	0%,
+	100% {
+		transform: scale(1);
+		box-shadow:
+			0 0 5px rgba(88, 196, 255, 0.45),
+			0 0 10px rgba(88, 196, 255, 0.28),
+			0 0 15px rgba(88, 196, 255, 0.18);
+	}
+	50% {
+		transform: scale(1.02);
+		box-shadow:
+			0 0 10px rgba(88, 196, 255, 0.6),
+			0 0 20px rgba(88, 196, 255, 0.4),
+			0 0 30px rgba(88, 196, 255, 0.25),
+			0 0 40px rgba(88, 196, 255, 0.18);
+	}
 }
 
 @keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+	0%,
+	100% {
+		transform: translateY(0px);
+	}
+	50% {
+		transform: translateY(-10px);
+	}
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
+	0% {
+		background-position: -200px 0;
+	}
+	100% {
+		background-position: calc(200px + 100%) 0;
+	}
 }
 
 @keyframes streak-fire {
-  0%, 100% {
-    transform: scale(1) rotate(0deg);
-  }
-  25% {
-    transform: scale(1.1) rotate(-2deg);
-  }
-  75% {
-    transform: scale(1.1) rotate(2deg);
-  }
+	0%,
+	100% {
+		transform: scale(1) rotate(0deg);
+	}
+	25% {
+		transform: scale(1.1) rotate(-2deg);
+	}
+	75% {
+		transform: scale(1.1) rotate(2deg);
+	}
 }
 
 .leaderboard-highlight {
-  position: relative;
-  overflow: visible;
+	position: relative;
+	overflow: visible;
 }
 
 .leaderboard-highlight::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  right: -6px;
-  bottom: -6px;
-  background: transparent;
-  border-radius: inherit;
-  z-index: -1;
-  animation: neon-glow 2s ease-in-out infinite;
-  filter: blur(8px);
-  pointer-events: none;
+	content: "";
+	position: absolute;
+	top: -6px;
+	left: -6px;
+	right: -6px;
+	bottom: -6px;
+	background: transparent;
+	border-radius: inherit;
+	z-index: -1;
+	animation: neon-glow 2s ease-in-out infinite;
+	filter: blur(8px);
+	pointer-events: none;
 }
 
 .leaderboard-highlight::after {
-  content: '';
-  position: absolute;
-  top: -3px;
-  left: -3px;
-  right: -3px;
-  bottom: -3px;
-  background: transparent;
-  border-radius: inherit;
-  z-index: -1;
-  animation: neon-glow-inner 2s ease-in-out infinite;
-  filter: blur(4px);
-  pointer-events: none;
+	content: "";
+	position: absolute;
+	top: -3px;
+	left: -3px;
+	right: -3px;
+	bottom: -3px;
+	background: transparent;
+	border-radius: inherit;
+	z-index: -1;
+	animation: neon-glow-inner 2s ease-in-out infinite;
+	filter: blur(4px);
+	pointer-events: none;
 }
 
 @keyframes neon-glow {
-  0%, 100% {
-    box-shadow: 
-      0 0 20px rgba(255, 180, 0, 0.3),
-      0 0 40px rgba(255, 180, 0, 0.2),
-      0 0 60px rgba(255, 180, 0, 0.1);
-  }
-  50% {
-    box-shadow: 
-      0 0 30px rgba(255, 180, 0, 0.5),
-      0 0 60px rgba(255, 180, 0, 0.3),
-      0 0 90px rgba(255, 180, 0, 0.2);
-  }
+	0%,
+	100% {
+		box-shadow:
+			0 0 20px rgba(88, 196, 255, 0.3),
+			0 0 40px rgba(88, 196, 255, 0.18),
+			0 0 60px rgba(88, 196, 255, 0.1);
+	}
+	50% {
+		box-shadow:
+			0 0 30px rgba(88, 196, 255, 0.45),
+			0 0 60px rgba(88, 196, 255, 0.26),
+			0 0 90px rgba(88, 196, 255, 0.16);
+	}
 }
 
 @keyframes neon-glow-inner {
-  0%, 100% {
-    box-shadow: 
-      inset 0 0 10px rgba(255, 180, 0, 0.2),
-      0 0 15px rgba(255, 180, 0, 0.3);
-  }
-  50% {
-    box-shadow: 
-      inset 0 0 15px rgba(255, 180, 0, 0.4),
-      0 0 25px rgba(255, 180, 0, 0.5);
-  }
+	0%,
+	100% {
+		box-shadow:
+			inset 0 0 10px rgba(88, 196, 255, 0.2),
+			0 0 15px rgba(88, 196, 255, 0.3);
+	}
+	50% {
+		box-shadow:
+			inset 0 0 15px rgba(88, 196, 255, 0.35),
+			0 0 25px rgba(88, 196, 255, 0.45);
+	}
 }
 
 .leaderboard-pulse {
-  animation: pulse-glow 2s ease-in-out infinite;
+	animation: pulse-glow 2s ease-in-out infinite;
 }
 
 .leaderboard-float {
-  animation: float 3s ease-in-out infinite;
+	animation: float 3s ease-in-out infinite;
 }
 
 .leaderboard-shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
-  background-size: 200px 100%;
-  animation: shimmer 2s infinite;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(255, 255, 255, 0.4),
+		transparent
+	);
+	background-size: 200px 100%;
+	animation: shimmer 2s infinite;
 }
 
 .leaderboard-fire {
-  animation: streak-fire 1s ease-in-out infinite;
+	animation: streak-fire 1s ease-in-out infinite;
 }
 
 .leaderboard-glow {
-  position: relative;
-  overflow: visible;
+	position: relative;
+	overflow: visible;
 }
 
 .leaderboard-glow::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  right: -6px;
-  bottom: -6px;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(255, 180, 0, 0.4) 0%,
-    rgba(255, 180, 0, 0.2) 30%,
-    rgba(255, 180, 0, 0.1) 60%,
-    transparent 100%
-  );
-  border-radius: inherit;
-  z-index: -1;
-  animation: glow-expand 3s ease-in-out infinite;
-  filter: blur(8px);
+	content: "";
+	position: absolute;
+	top: -6px;
+	left: -6px;
+	right: -6px;
+	bottom: -6px;
+	background: radial-gradient(
+		ellipse at center,
+		rgba(88, 196, 255, 0.32) 0%,
+		rgba(88, 196, 255, 0.18) 30%,
+		rgba(88, 196, 255, 0.1) 60%,
+		transparent 100%
+	);
+	border-radius: inherit;
+	z-index: -1;
+	animation: glow-expand 3s ease-in-out infinite;
+	filter: blur(8px);
 }
 
 @keyframes glow-expand {
-  0%, 100% {
-    opacity: 0.7;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
+	0%,
+	100% {
+		opacity: 0.7;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(1.1);
+	}
 }
 
 @keyframes gradient-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+	0% {
+		background-position: 0% 50%;
+	}
+	50% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0% 50%;
+	}
 }
 
 /* Hide scrollbars but keep functionality */
 .leaderboard-scroll {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+	scrollbar-width: none; /* Firefox */
+	-ms-overflow-style: none; /* IE and Edge */
 }
 
 .leaderboard-scroll::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+	display: none; /* Chrome, Safari, Opera */
 }
 
 /* Ensure glow doesn't cause horizontal overflow */
 .leaderboard-scroll {
-  overflow-x: hidden;
+	overflow-x: hidden;
 }
 
 /* Add padding to prevent glow clipping */
 .leaderboard-scroll {
-  padding: 8px 0;
+	padding: 8px 0;
 }
 
 /* Rank badge animations */
 .rank-badge-1 {
-  background: linear-gradient(135deg, #ffd700, #ffb400);
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+	background: linear-gradient(135deg, #58c4ff, #34d399);
+	box-shadow: 0 4px 15px rgba(88, 196, 255, 0.35);
 }
 
 .rank-badge-2 {
-  background: linear-gradient(135deg, #c0c0c0, #a8a8a8);
-  box-shadow: 0 4px 15px rgba(192, 192, 192, 0.4);
+	background: linear-gradient(135deg, #a855f7, #6366f1);
+	box-shadow: 0 4px 15px rgba(168, 85, 247, 0.35);
 }
 
 .rank-badge-3 {
-  background: linear-gradient(135deg, #cd7f32, #b87333);
-  box-shadow: 0 4px 15px rgba(205, 127, 50, 0.4);
+	background: linear-gradient(135deg, #f97316, #fb7185);
+	box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
 }
 
 /* Streak emoji animations */
 .streak-emoji {
-  display: inline-block;
-  animation: streak-fire 2s ease-in-out infinite;
+	display: inline-block;
+	animation: streak-fire 2s ease-in-out infinite;
 }
 
 /* Hover effects */
 .leaderboard-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .leaderboard-card:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+	transform: translateY(-2px) scale(1.02);
+	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #ffb400, #ff6b35, #ffb400);
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradient-shift 3s ease infinite;
+	background: linear-gradient(135deg, #58c4ff, #a855f7, #34d399);
+	background-size: 200% 200%;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
+	animation: gradient-shift 3s ease infinite;
 }
 
 /* Fire effect for high streaks */
 .fire-effect {
-  position: relative;
-  overflow: hidden;
+	position: relative;
+	overflow: hidden;
 }
 
 .fire-effect::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 107, 53, 0.4),
-    transparent
-  );
-  animation: fire-sweep 2s infinite;
+	content: "";
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(88, 196, 255, 0.25),
+		transparent
+	);
+	animation: fire-sweep 2s infinite;
 }
 
 @keyframes fire-sweep {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
+	0% {
+		left: -100%;
+	}
+	100% {
+		left: 100%;
+	}
 }
