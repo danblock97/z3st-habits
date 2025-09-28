@@ -27,7 +27,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 	const [theme, setThemeState] = useState<ThemePreference | null>(null);
 
 	useEffect(() => {
-		const stored = (() => {
+		const readStoredTheme = (): ThemePreference | null => {
 			try {
 				const storedValue = window.localStorage.getItem(THEME_STORAGE_KEY);
 				if (storedValue === "dark" || storedValue === "light") {
@@ -37,14 +37,49 @@ export function ThemeToggle({ className }: { className?: string }) {
 				// Ignore localStorage errors (e.g., private mode)
 			}
 			return null;
-		})();
-		// Default to the project's DEFAULT_THEME when there is no stored preference.
-		const initialTheme = (stored as ThemePreference | null) ?? DEFAULT_THEME;
+		};
+
+		const stored = readStoredTheme();
+		const mediaQuery =
+			typeof window.matchMedia === "function"
+				? window.matchMedia("(prefers-color-scheme: dark)")
+				: null;
+		const systemTheme: ThemePreference | null = mediaQuery
+			? mediaQuery.matches
+				? "dark"
+				: "light"
+			: null;
+
+		const initialTheme = stored ?? systemTheme ?? DEFAULT_THEME;
 		setThemeState(initialTheme);
 		setTheme(initialTheme);
 
-		// Do not listen to system preference changes. Theme should only change
-		// when the user explicitly toggles or when a stored preference exists.
+		if (!stored && mediaQuery) {
+			const handleChange = (event: MediaQueryListEvent) => {
+				const storedPreference = readStoredTheme();
+				if (storedPreference) {
+					return;
+				}
+				const nextTheme: ThemePreference = event.matches ? "dark" : "light";
+				setThemeState(nextTheme);
+				setTheme(nextTheme);
+			};
+
+			if (typeof mediaQuery.addEventListener === "function") {
+				mediaQuery.addEventListener("change", handleChange);
+			} else if (typeof mediaQuery.addListener === "function") {
+				mediaQuery.addListener(handleChange);
+			}
+
+			return () => {
+				if (typeof mediaQuery.removeEventListener === "function") {
+					mediaQuery.removeEventListener("change", handleChange);
+				} else if (typeof mediaQuery.removeListener === "function") {
+					mediaQuery.removeListener(handleChange);
+				}
+			};
+		}
+
 		return () => undefined;
 	}, []);
 

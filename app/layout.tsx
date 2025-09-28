@@ -35,27 +35,56 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const THEME_INITIALIZER = `(() => {
-  try {
-    const storageKey = ${JSON.stringify(THEME_STORAGE_KEY)};
-    const root = document.documentElement;
-    const storedTheme = window.localStorage.getItem(storageKey);
-    // Default to the project's DEFAULT_THEME when no explicit stored
-    // preference exists. Do not fallback to system preference so the app
-    // remains consistent across environments.
-    const resolvedTheme = storedTheme === 'dark' || storedTheme === 'light'
-      ? storedTheme
-      : ${JSON.stringify(DEFAULT_THEME)};
+	try {
+		const storageKey = ${JSON.stringify(THEME_STORAGE_KEY)};
+		const root = document.documentElement;
 
-    if (resolvedTheme === 'dark') {
-      root.classList.add('dark');
-      root.style.colorScheme = 'dark';
-    } else {
-      root.classList.remove('dark');
-      root.style.colorScheme = 'light';
-    }
-  } catch (error) {
-    // Ignore errors accessing localStorage (e.g., private mode)
-  }
+		const getStoredTheme = () => {
+			try {
+				const value = window.localStorage.getItem(storageKey);
+				return value === 'dark' || value === 'light' ? value : null;
+			} catch {
+				return null;
+			}
+		};
+
+		const applyTheme = (theme) => {
+			if (theme === 'dark') {
+				root.classList.add('dark');
+				root.style.colorScheme = 'dark';
+			} else {
+				root.classList.remove('dark');
+				root.style.colorScheme = 'light';
+			}
+		};
+
+		const storedTheme = getStoredTheme();
+		const mediaQuery = typeof window.matchMedia === 'function'
+			? window.matchMedia('(prefers-color-scheme: dark)')
+			: null;
+		const systemTheme = mediaQuery ? (mediaQuery.matches ? 'dark' : 'light') : null;
+		const resolvedTheme = storedTheme || systemTheme || ${JSON.stringify(DEFAULT_THEME)};
+
+		applyTheme(resolvedTheme);
+
+		if (!storedTheme && mediaQuery) {
+			const handleChange = (event) => {
+				const currentStored = getStoredTheme();
+				if (currentStored) {
+					return;
+				}
+				applyTheme(event.matches ? 'dark' : 'light');
+			};
+
+			if (typeof mediaQuery.addEventListener === 'function') {
+				mediaQuery.addEventListener('change', handleChange);
+			} else if (typeof mediaQuery.addListener === 'function') {
+				mediaQuery.addListener(handleChange);
+			}
+		}
+	} catch (error) {
+		// Ignore errors accessing localStorage (e.g., private mode)
+	}
 })();`;
 
 const geistSans = Geist({
