@@ -98,11 +98,15 @@ function generateReminderEmail(
 	const mostAtRiskHabit = atRiskHabits[0];
 	const habitEmoji = mostAtRiskHabit?.emoji || "🎯";
 	const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://z3st.app";
-	const streakCount =
-		accountStreak?.current ?? mostAtRiskHabit?.currentStreak ?? 0;
+	const accountStreakCount = accountStreak?.current ?? 0;
+	const primaryStreakCount =
+		accountStreakCount > 0
+			? accountStreakCount
+			: (mostAtRiskHabit?.currentStreak ?? 0);
+	const highlightedHabitStreak = mostAtRiskHabit?.currentStreak ?? 0;
 
 	return {
-		subject: `${habitEmoji} Don't break your ${streakCount}-day streak!`,
+		subject: `${habitEmoji} Don't break your ${primaryStreakCount}-day streak!`,
 		html: `
 <!doctype html>
 <html lang="en">
@@ -127,7 +131,7 @@ body, .body-bg { background: #0b0b0b !important; }
 </head>
 <body class="body-bg" style="margin:0; padding:0; background:#FFFBEA;">
 <!-- Preheader (hidden in most clients) -->
-<div style="display:none; overflow:hidden; line-height:1px; opacity:0; max-height:0; max-width:0;">Don't break your ${mostAtRiskHabit.currentStreak}-day streak! Complete your habits now.</div>
+<div style="display:none; overflow:hidden; line-height:1px; opacity:0; max-height:0; max-width:0;">Don't break your ${primaryStreakCount}-day streak! Complete your habits now.</div>
 
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
 <tr>
@@ -140,7 +144,25 @@ body, .body-bg { background: #0b0b0b !important; }
 <tr>
 <td class="card px-md" style="background:#ffffff; border:1px solid #F7EFC3; border-radius:16px; padding:32px; box-shadow:0 6px 24px rgba(255,216,77,0.18); font-family:Segoe UI, Roboto, Arial, sans-serif; color:#1a1a1a;">
 <h1 style="margin:0 0 12px; font-size:24px; line-height:1.25;">${habitEmoji} Streak Alert!</h1>
-<p style="margin:0 0 20px; font-size:16px; line-height:1.6;">You're about to break your ${streakCount}-day streak. Don't let all that progress go to waste!</p>
+<p style="margin:0 0 20px; font-size:16px; line-height:1.6;">You're about to break your ${
+			accountStreakCount > 0
+				? `${accountStreakCount}-day overall streak`
+				: `${highlightedHabitStreak}-day ${mostAtRiskHabit?.title ?? "habit"} streak`
+		}; don't let that momentum slip!</p>
+
+${
+	accountStreakCount > 0
+		? `
+<!-- Overall streak card -->
+<div style="background:#FFF0B3; border:1px solid #FFD84D; border-radius:12px; padding:20px; margin:20px 0;">
+<h2 style="margin:0 0 8px; font-size:18px; color:#6b4d00;">Overall streak</h2>
+<div style="font-size:32px; font-weight:bold; color:#B7791F; margin:8px 0;">${accountStreakCount} days</div>
+<p style="margin:8px 0 0; font-size:14px; color:#6b4d00;">Completing any habit today keeps this streak alive.</p>
+</div>
+`
+		: ""
+}
+
 
 ${
 	mostAtRiskHabit
@@ -148,8 +170,8 @@ ${
 <!-- Main habit card -->
 <div style="background:#FFF7C2; border:1px solid #FFE066; border-radius:12px; padding:20px; margin:20px 0;">
 <h2 style="margin:0 0 8px; font-size:18px; color:#7a5b00;">${mostAtRiskHabit.title}</h2>
-<div style="font-size:32px; font-weight:bold; color:#FFD84D; margin:8px 0;">${mostAtRiskHabit.currentStreak} days</div>
-<p style="margin:8px 0 0; font-size:14px; color:#7a5b00;">You've been crushing this habit for ${mostAtRiskHabit.currentStreak} days straight! Keep the momentum going.</p>
+<div style="font-size:32px; font-weight:bold; color:#FFD84D; margin:8px 0;">${highlightedHabitStreak} days</div>
+<p style="margin:8px 0 0; font-size:14px; color:#7a5b00;">You've been crushing this habit for ${highlightedHabitStreak} days straight. Log it today to protect your overall streak.</p>
 </div>
 `
 		: ""
@@ -193,7 +215,7 @@ ${atRiskHabits
 
 <hr style="margin:28px 0; border:none; height:1px; background:linear-gradient(90deg, rgba(255,216,77,0.2), rgba(0,0,0,0));" />
 
-<p class="muted" style="margin:0 0 8px; font-size:12px; color:#6b6b6b;">This reminder was sent because you haven't completed any habits today and you have a ${streakCount}-day streak.</p>
+<p class="muted" style="margin:0 0 8px; font-size:12px; color:#6b6b6b;">This reminder was sent because you haven't completed any habits today and you have a ${primaryStreakCount}-day streak on the line.</p>
 <p class="muted" style="margin:0; font-size:12px; color:#6b6b6b;">You can manage your reminder preferences in your account settings.</p>
 <p class="muted" style="margin:8px 0 0; font-size:12px; color:#6b6b6b;">Sent from ${appUrl}</p>
 </td>
