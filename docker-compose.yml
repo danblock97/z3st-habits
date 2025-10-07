@@ -6,18 +6,17 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        # Public vars that get embedded in the bundle at build time
         - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
         - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
         - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
         - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
-        - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-        - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-        - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
         - STRIPE_PRICE_ID_PRO_MONTHLY=${STRIPE_PRICE_ID_PRO_MONTHLY}
         - STRIPE_PRICE_ID_PRO_YEARLY=${STRIPE_PRICE_ID_PRO_YEARLY}
         - STRIPE_PRICE_ID_PLUS_MONTHLY=${STRIPE_PRICE_ID_PLUS_MONTHLY}
         - STRIPE_PRICE_ID_PLUS_YEARLY=${STRIPE_PRICE_ID_PLUS_YEARLY}
+        # Server-side secrets NOT passed as build args - provided at runtime via env_file
     env_file:
       - .env
     environment:
