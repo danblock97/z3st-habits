@@ -28,16 +28,21 @@ import { Progress } from "@/components/ui/progress";
 import { createClient } from "@/lib/supabase/client";
 
 import type { GroupDashboardData } from "./types";
+import type { ChallengeWithCreator } from "@/app/(app)/app/challenges/types";
 import { removeMember } from "../../groups/actions";
+import { GroupChallengesTab } from "./group-challenges-tab";
+import { ActiveChallengeBanner } from "./active-challenge-banner";
 
 type GroupDashboardClientProps = {
 	initialData: GroupDashboardData;
 	groupId: string;
+	challenges: ChallengeWithCreator[];
 };
 
 export function GroupDashboardClient({
 	initialData,
 	groupId,
+	challenges,
 }: GroupDashboardClientProps) {
 	const [data, setData] = useState<GroupDashboardData>(initialData);
 	const [leaderboardView, setLeaderboardView] = useState<"streaks" | "volume">(
@@ -365,8 +370,11 @@ export function GroupDashboardClient({
 				</div>
 			</div>
 
+			{/* Active Challenge Banner */}
+			<ActiveChallengeBanner challenges={challenges} />
+
 			<Tabs defaultValue="feed" className="w-full">
-				<TabsList className="grid w-full grid-cols-3">
+				<TabsList className="grid w-full grid-cols-4">
 					<TabsTrigger value="feed">
 						<Activity className="mr-2 h-4 w-4" />
 						Feed
@@ -374,6 +382,10 @@ export function GroupDashboardClient({
 					<TabsTrigger value="leaderboard">
 						<Trophy className="mr-2 h-4 w-4" />
 						Leaderboard
+					</TabsTrigger>
+					<TabsTrigger value="challenges">
+						<Target className="mr-2 h-4 w-4" />
+						Challenges
 					</TabsTrigger>
 					<TabsTrigger value="members">
 						<Users className="mr-2 h-4 w-4" />
@@ -598,6 +610,15 @@ export function GroupDashboardClient({
 							</Card>
 						))}
 					</div>
+				</TabsContent>
+
+				<TabsContent value="challenges" className="space-y-4">
+					<GroupChallengesTab
+						groupId={groupId}
+						groupName={data.group.name}
+						challenges={challenges}
+						userRole={data.group.userRole}
+					/>
 				</TabsContent>
 
 				<TabsContent value="members" className="space-y-4">
