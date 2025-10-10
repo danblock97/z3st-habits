@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { createServerClient } from '@/lib/supabase/server';
+import { getChallenges } from '@/app/(app)/app/challenges/actions';
 
 import { GroupDashboardClient } from './group-dashboard-client';
 import type { GroupDashboardData } from './types';
@@ -215,6 +216,9 @@ export default async function GroupPage({ params }: GroupPageProps) {
     })
   );
 
+  // Get challenges for this group
+  const groupChallenges = await getChallenges({ groupId: resolvedParams.id });
+
   const data: GroupDashboardData = {
     group: {
       id: group.id,
@@ -229,5 +233,5 @@ export default async function GroupPage({ params }: GroupPageProps) {
     checkins,
   };
 
-  return <GroupDashboardClient initialData={data} groupId={resolvedParams.id} />;
+  return <GroupDashboardClient initialData={data} groupId={resolvedParams.id} challenges={groupChallenges} />;
 }
