@@ -225,7 +225,11 @@ type CompleteHabitResult =
       message: string;
     };
 
-export async function completeHabitToday(params: { habitId: string }): Promise<CompleteHabitResult> {
+export async function completeHabitToday(params: {
+  habitId: string;
+  note?: string;
+  photoUrl?: string;
+}): Promise<CompleteHabitResult> {
   const supabase = await createServerClient();
   const {
     data: { session },
@@ -241,6 +245,7 @@ export async function completeHabitToday(params: { habitId: string }): Promise<C
 
   const userId = session.user.id;
   const habitId = params.habitId;
+  const { note, photoUrl } = params;
 
   const { data: habitRecord } = await supabase
     .from('habits')
@@ -277,9 +282,22 @@ export async function completeHabitToday(params: { habitId: string }): Promise<C
 
   if (existingCheckin) {
     const newCount = (existingCheckin.count ?? 0) + 1;
+    const updateData: {
+      count: number;
+      note?: string;
+      photo_url?: string;
+    } = { count: newCount };
+
+    if (note !== undefined) {
+      updateData.note = note;
+    }
+    if (photoUrl !== undefined) {
+      updateData.photo_url = photoUrl;
+    }
+
     const { data: updated, error: updateError } = await supabase
       .from('checkins')
-      .update({ count: newCount })
+      .update(updateData)
       .eq('id', existingCheckin.id)
       .select('count')
       .single();
@@ -293,14 +311,30 @@ export async function completeHabitToday(params: { habitId: string }): Promise<C
 
     todayCount = updated.count ?? newCount;
   } else {
+    const insertData: {
+      habit_id: string;
+      user_id: string;
+      local_date: string;
+      count: number;
+      note?: string;
+      photo_url?: string;
+    } = {
+      habit_id: habitId,
+      user_id: userId,
+      local_date: localDate,
+      count: 1,
+    };
+
+    if (note) {
+      insertData.note = note;
+    }
+    if (photoUrl) {
+      insertData.photo_url = photoUrl;
+    }
+
     const { data: inserted, error: insertError } = await supabase
       .from('checkins')
-      .insert({
-        habit_id: habitId,
-        user_id: userId,
-        local_date: localDate,
-        count: 1,
-      })
+      .insert(insertData)
       .select('count')
       .single();
 
