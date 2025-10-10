@@ -18,6 +18,7 @@ import {
 	CircleDot,
 	ListChecks,
 	Plus,
+	Share2,
 	Sparkles,
 	Trash2,
 } from "lucide-react";
@@ -53,6 +54,7 @@ import { completeHabitToday, createHabit, deleteHabit } from "./actions";
 import { habitFormInitialState } from "./form-state";
 import type { HabitCadence, HabitSummary } from "./types";
 import { GoPlusModal } from "@/components/ui/go-plus-modal";
+import { createTemplate } from "../templates/actions";
 
 type HabitListItem = HabitSummary & { isOptimistic?: boolean };
 
@@ -562,13 +564,64 @@ function HabitGrid({
 	pendingCheckins: Record<string, boolean>;
 	habitRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
 }) {
+	const [showShareDialog, setShowShareDialog] = useState(false);
+	const [habitToShare, setHabitToShare] = useState<HabitListItem | null>(null);
+	const [shareDescription, setShareDescription] = useState("");
+	const [shareCategory, setShareCategory] = useState<string>("");
+	const [shareTags, setShareTags] = useState("");
+	const [isSharing, setIsSharing] = useState(false);
+	const { showToast } = useToast();
+
+	const handleShareClick = (habit: HabitListItem) => {
+		setHabitToShare(habit);
+		setShowShareDialog(true);
+		setShareDescription("");
+		setShareCategory("");
+		setShareTags("");
+	};
+
+	const handleConfirmShare = async () => {
+		if (!habitToShare) return;
+
+		setIsSharing(true);
+		const tags = shareTags
+			.split(",")
+			.map((t) => t.trim())
+			.filter(Boolean);
+
+		const result = await createTemplate({
+			habitId: habitToShare.id,
+			description: shareDescription || undefined,
+			category: shareCategory || undefined,
+			tags: tags.length > 0 ? tags : undefined,
+		});
+
+		setIsSharing(false);
+
+		if (result.success) {
+			showToast({
+				title: "Success",
+				description: result.message,
+				variant: "success",
+			});
+			setShowShareDialog(false);
+			setHabitToShare(null);
+		} else {
+			showToast({
+				title: "Error",
+				description: result.message,
+				variant: "error",
+			});
+		}
+	};
 	if (!habits.length) {
 		return null;
 	}
 
 	return (
-		<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{habits.map((habit) => (
+		<>
+			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				{habits.map((habit) => (
 				<Card
 					key={habit.id}
 					ref={(el) => {
@@ -662,7 +715,17 @@ function HabitGrid({
 							{pendingCheckins[habit.id] ? "Logging…" : "Today"}
 						</Button>
 					</CardContent>
-					<div className="border-t bg-muted/30 p-4">
+					<div className="border-t bg-muted/30 p-4 space-y-2">
+						<Button
+							variant="outline"
+							size="sm"
+							className="w-full"
+							onClick={() => handleShareClick(habit)}
+							disabled={habit.isOptimistic}
+						>
+							<Share2 className="mr-2 h-4 w-4" />
+							Share as Template
+						</Button>
 						<Button
 							variant="outline"
 							size="sm"
@@ -675,8 +738,96 @@ function HabitGrid({
 						</Button>
 					</div>
 				</Card>
-			))}
-		</div>
+				))}
+			</div>
+
+			{/* Share Template Dialog */}
+			<Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+				<DialogContent className="sm:max-w-[500px]">
+					<DialogHeader>
+						<DialogTitle>Share Habit as Template</DialogTitle>
+						<DialogDescription>
+							Share &ldquo;{habitToShare?.title}&rdquo; with the community.
+							Others will be able to import it as their own habit.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4">
+						<div>
+							<label
+								htmlFor="share-description"
+								className="text-sm font-medium mb-2 block"
+							>
+								Description (optional)
+							</label>
+							<Input
+								id="share-description"
+								placeholder="What makes this habit successful?"
+								value={shareDescription}
+								onChange={(e) => setShareDescription(e.target.value)}
+								maxLength={500}
+							/>
+							<p className="text-xs text-muted-foreground mt-1">
+								{shareDescription.length}/500
+							</p>
+						</div>
+						<div>
+							<label
+								htmlFor="share-category"
+								className="text-sm font-medium mb-2 block"
+							>
+								Category (optional)
+							</label>
+							<select
+								id="share-category"
+								className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+								value={shareCategory}
+								onChange={(e) => setShareCategory(e.target.value)}
+							>
+								<option value="">Select a category</option>
+								<option value="fitness">Fitness</option>
+								<option value="health">Health</option>
+								<option value="productivity">Productivity</option>
+								<option value="mindfulness">Mindfulness</option>
+								<option value="learning">Learning</option>
+								<option value="social">Social</option>
+								<option value="finance">Finance</option>
+								<option value="creative">Creative</option>
+								<option value="other">Other</option>
+							</select>
+						</div>
+						<div>
+							<label
+								htmlFor="share-tags"
+								className="text-sm font-medium mb-2 block"
+							>
+								Tags (optional)
+							</label>
+							<Input
+								id="share-tags"
+								placeholder="morning, wellness, energy (comma separated)"
+								value={shareTags}
+								onChange={(e) => setShareTags(e.target.value)}
+							/>
+							<p className="text-xs text-muted-foreground mt-1">
+								Maximum 5 tags, comma separated
+							</p>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setShowShareDialog(false)}
+							disabled={isSharing}
+						>
+							Cancel
+						</Button>
+						<Button onClick={handleConfirmShare} disabled={isSharing}>
+							{isSharing ? "Sharing..." : "Share Template"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</>
 	);
 }
 
