@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createServerClient } from "@/lib/supabase/server";
+import { OpenHuntsBadge } from "@/components/openhunts-badge";
 
 const featureCards = [
   {
@@ -164,6 +165,9 @@ export default async function Home() {
                 <Button asChild size="lg" variant="outline">
                   <Link href="#features">See Features</Link>
                 </Button>
+              </div>
+              <div className="flex justify-center lg:justify-start pt-4">
+                <OpenHuntsBadge />
               </div>
               <div className="grid gap-3 text-left text-sm text-foreground/80 sm:grid-cols-3">
                 <div className="rounded-xl border border-border/70 bg-card/60 p-4 shadow-sm">

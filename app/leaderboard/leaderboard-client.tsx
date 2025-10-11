@@ -283,26 +283,30 @@ export function LeaderboardClient({
 								const isHighlighted = highlightedUser === entry.id;
 
 								return (
-									<Card
+									<Link
 										key={entry.id}
-										id={`entry-${entry.id}`}
-										className={`leaderboard-card transition-all duration-500 ${
-											isHighlighted
-												? "leaderboard-highlight ring-4 ring-primary/50 shadow-2xl scale-105 bg-gradient-to-r from-primary/10 to-zest-100/50"
-												: isCurrentUser
-													? "border-primary/30 bg-gradient-to-r from-primary/5 to-transparent"
-													: "hover:shadow-lg hover:scale-102"
-										}`}
-										style={
-											isHighlighted
-												? {
-														transform: "scale(1.01)",
-														transition: "all 0.3s ease-in-out",
-													}
-												: undefined
-										}
+										href={`/u/${entry.username}`}
+										className="block"
 									>
-										<CardContent className="p-4">
+										<Card
+											id={`entry-${entry.id}`}
+											className={`leaderboard-card transition-all duration-500 cursor-pointer ${
+												isHighlighted
+													? "leaderboard-highlight ring-4 ring-primary/50 shadow-2xl scale-105 bg-gradient-to-r from-primary/10 to-zest-100/50"
+													: isCurrentUser
+														? "border-primary/30 bg-gradient-to-r from-primary/5 to-transparent"
+														: "hover:shadow-lg hover:scale-102"
+											}`}
+											style={
+												isHighlighted
+													? {
+															transform: "scale(1.01)",
+															transition: "all 0.3s ease-in-out",
+														}
+													: undefined
+											}
+										>
+											<CardContent className="p-4">
 											<div className="flex items-center gap-4">
 												{/* Rank */}
 												<div
@@ -436,8 +440,9 @@ export function LeaderboardClient({
 													)}
 												</div>
 											</div>
-										</CardContent>
-									</Card>
+											</CardContent>
+										</Card>
+									</Link>
 								);
 							})
 						)}
