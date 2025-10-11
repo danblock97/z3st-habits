@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { DependencyGraph } from "./dependency-graph";
 
 interface AnalyticsData {
 	summary: {
@@ -400,6 +401,7 @@ export default function AdvancedAnalytics({
 					<TabsTrigger value="habits">Habit Analysis</TabsTrigger>
 					<TabsTrigger value="trends">Trends</TabsTrigger>
 					<TabsTrigger value="comparisons">Comparisons</TabsTrigger>
+					<TabsTrigger value="dependencies">Dependencies</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="overview" className="space-y-4">
@@ -672,6 +674,10 @@ export default function AdvancedAnalytics({
 							</ResponsiveContainer>
 						</CardContent>
 					</Card>
+				</TabsContent>
+
+				<TabsContent value="dependencies" className="space-y-4">
+					<DependencyGraph />
 				</TabsContent>
 			</Tabs>
 		</div>

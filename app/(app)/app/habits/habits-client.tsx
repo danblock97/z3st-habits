@@ -23,6 +23,8 @@ import {
 	Trash2,
 	Camera,
 	X,
+	Lock,
+	ArrowRight,
 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -58,6 +60,7 @@ import { habitFormInitialState } from "./form-state";
 import type { HabitCadence, HabitSummary } from "./types";
 import { GoPlusModal } from "@/components/ui/go-plus-modal";
 import { createTemplate } from "../templates/actions";
+import { HabitDependenciesManager } from "./habit-dependencies-manager";
 
 type HabitListItem = HabitSummary & { isOptimistic?: boolean };
 
@@ -622,6 +625,7 @@ export function HabitsClient({
 					onDeleteHabit={handleDeleteHabit}
 					pendingCheckins={pendingCheckins}
 					habitRefs={habitRefs}
+					allHabits={optimisticHabits}
 				/>
 			) : (
 				<EmptyHabitsState onCreate={() => setIsDialogOpen(true)} />
@@ -788,12 +792,14 @@ function HabitGrid({
 	onDeleteHabit,
 	pendingCheckins,
 	habitRefs,
+	allHabits,
 }: {
 	habits: HabitListItem[];
 	onCheckIn: (habit: HabitListItem) => void;
 	onDeleteHabit: (habit: HabitListItem) => void;
 	pendingCheckins: Record<string, boolean>;
 	habitRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
+	allHabits: HabitListItem[];
 }) {
 	const [showShareDialog, setShowShareDialog] = useState(false);
 	const [habitToShare, setHabitToShare] = useState<HabitListItem | null>(null);
@@ -922,6 +928,22 @@ function HabitGrid({
 								Created {new Date(habit.createdAt).toLocaleDateString("en-US")}
 							</span>
 						</div>
+						{(habit.parents && habit.parents.length > 0) || (habit.children && habit.children.length > 0) ? (
+							<div className="flex flex-wrap gap-2">
+								{habit.parents && habit.parents.length > 0 && (
+									<Badge variant="outline" className="text-xs gap-1">
+										<Lock className="h-3 w-3" />
+										{habit.parents.length} parent{habit.parents.length > 1 ? 's' : ''}
+									</Badge>
+								)}
+								{habit.children && habit.children.length > 0 && (
+									<Badge variant="outline" className="text-xs gap-1">
+										<ArrowRight className="h-3 w-3" />
+										{habit.children.length} child{habit.children.length > 1 ? 'ren' : ''}
+									</Badge>
+								)}
+							</div>
+						) : null}
 						<div className="space-y-2">
 							<div className="flex items-center justify-between text-xs font-medium text-foreground/80">
 								<span>Today</span>
@@ -947,6 +969,10 @@ function HabitGrid({
 						</Button>
 					</CardContent>
 					<div className="border-t bg-muted/30 p-4 space-y-2">
+						<HabitDependenciesManager
+							currentHabit={habit}
+							availableHabits={allHabits.filter(h => !h.isOptimistic)}
+						/>
 						<Button
 							variant="outline"
 							size="sm"
