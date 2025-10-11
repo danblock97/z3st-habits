@@ -68,12 +68,15 @@ export function CelebrationExample() {
 
   // Example 3: Celebrate streak milestone
   const handleStreakMilestone = (days: number) => {
+    const rarity: 'common' | 'rare' | 'epic' | 'legendary' =
+      days >= 365 ? 'legendary' : days >= 100 ? 'epic' : days >= 30 ? 'rare' : 'common';
+
     const milestoneData = {
       type: 'streak' as const,
       title: `${days}-Day Streak!`,
       description: `You've maintained a ${days}-day habit streak!`,
       emoji: days >= 100 ? '🔥' : days >= 30 ? '⭐' : '✨',
-      rarity: (days >= 365 ? 'legendary' : days >= 100 ? 'epic' : days >= 30 ? 'rare' : 'common') as const,
+      rarity,
       value: days,
       unlockedAt: new Date(),
     };

@@ -721,6 +721,7 @@ async function getHabitChildren(
     return [];
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data || []).map((item: any) => ({
     habitId: item.habit_id,
     title: item.title,

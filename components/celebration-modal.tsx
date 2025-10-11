@@ -77,7 +77,7 @@ export function CelebrationModal({
         <DialogHeader className="sr-only">
           <DialogTitle>Achievement Unlocked!</DialogTitle>
           <DialogDescription>
-            You've unlocked a new milestone: {milestone.title}
+            You&apos;ve unlocked a new milestone: {milestone.title}
           </DialogDescription>
         </DialogHeader>
 

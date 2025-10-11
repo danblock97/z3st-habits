@@ -115,7 +115,7 @@ export function TemplatesClient({
 				showToast({
 					title: "Success",
 					description: result.message,
-					variant: "success",
+					type: "success",
 				});
 				// Update the template to mark as used
 				setTemplates((prev) =>
@@ -129,7 +129,7 @@ export function TemplatesClient({
 				showToast({
 					title: "Error",
 					description: result.message,
-					variant: "error",
+					type: "error",
 				});
 			}
 		});

@@ -122,7 +122,7 @@ export function HabitDependenciesManager({
         showToast({
           title: 'Failed to add dependency',
           description: result.message,
-          variant: 'error',
+          type: 'error',
         });
       }
     });
@@ -155,7 +155,7 @@ export function HabitDependenciesManager({
         showToast({
           title: 'Failed to add dependency',
           description: result.message,
-          variant: 'error',
+          type: 'error',
         });
       }
     });
@@ -175,7 +175,7 @@ export function HabitDependenciesManager({
         showToast({
           title: 'Failed to remove dependency',
           description: result.message,
-          variant: 'error',
+          type: 'error',
         });
       }
     });
@@ -195,7 +195,7 @@ export function HabitDependenciesManager({
         showToast({
           title: 'Failed to remove dependency',
           description: result.message,
-          variant: 'error',
+          type: 'error',
         });
       }
     });
@@ -244,7 +244,7 @@ export function HabitDependenciesManager({
             {currentHabit.title} - Dependencies
           </DialogTitle>
           <DialogDescription>
-            Build habit stacks by linking habits together. Use "Requires" to block this habit until parents are completed, or "Enables/Suggests" for soft recommendations.
+            Build habit stacks by linking habits together. Use &quot;Requires&quot; to block this habit until parents are completed, or &quot;Enables/Suggests&quot; for soft recommendations.
           </DialogDescription>
         </DialogHeader>
 
@@ -263,7 +263,7 @@ export function HabitDependenciesManager({
                     Parent Habits
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Habits that influence this one (only "Requires" blocks completion)
+                    Habits that influence this one (only &quot;Requires&quot; blocks completion)
                   </p>
                 </div>
               </div>

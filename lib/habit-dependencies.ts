@@ -22,6 +22,7 @@ export async function getHabitParents(
     return [];
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data || []).map((item: any) => ({
     habitId: item.habit_id,
     title: item.title,
@@ -46,6 +47,7 @@ export async function getHabitChildren(
     return [];
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data || []).map((item: any) => ({
     habitId: item.habit_id,
     title: item.title,
@@ -70,6 +72,7 @@ export async function getUserDependencyTree(
     return [];
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data || []).map((item: any) => ({
     parentId: item.parent_id,
     parentTitle: item.parent_title,
@@ -182,6 +185,7 @@ export async function areParentDependenciesMet(
 
   // Filter to only 'requires' dependencies
   const requiredParents = parents.filter(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (p: any) => p.dependency_type === 'requires'
   );
 

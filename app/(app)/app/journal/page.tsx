@@ -55,11 +55,12 @@ export default async function JournalPage() {
   // Transform to JournalEntry format
   const entries: JournalEntry[] = checkinsData
     .filter((checkin) => checkin.habit)
-    .map((checkin) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((checkin: any) => ({
       id: checkin.id,
       habitId: checkin.habit_id,
-      habitTitle: (checkin.habit as any).title,
-      habitEmoji: (checkin.habit as any).emoji,
+      habitTitle: checkin.habit.title,
+      habitEmoji: checkin.habit.emoji,
       localDate: checkin.local_date,
       count: checkin.count,
       note: checkin.note,

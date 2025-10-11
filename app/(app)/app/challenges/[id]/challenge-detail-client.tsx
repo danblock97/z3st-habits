@@ -69,13 +69,13 @@ export function ChallengeDetailClient({
 				showToast({
 					title: 'Error',
 					description: result.message,
-					variant: 'error',
+					type: 'error',
 				});
 			} else {
 				showToast({
 					title: 'Success',
 					description: result.message,
-					variant: 'success',
+					type: 'success',
 				});
 				router.refresh();
 			}

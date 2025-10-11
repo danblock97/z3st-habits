@@ -115,7 +115,8 @@ export async function GET(request: NextRequest) {
 				const challengeUrl = `${appUrl}/app/challenges/${challenge.id}`;
 
 				// For completion emails, we need to fetch the winner
-				let emailData: any = {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const emailData: any = {
 					challengeTitle: challenge.title,
 					challengeEmoji: challenge.emoji,
 					groupName: group?.name || 'Unknown Group',

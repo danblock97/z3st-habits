@@ -60,6 +60,7 @@ import { habitFormInitialState } from "./form-state";
 import type { HabitCadence, HabitSummary } from "./types";
 import { GoPlusModal } from "@/components/ui/go-plus-modal";
 import { createTemplate } from "../templates/actions";
+import type { TemplateCategory } from "../templates/types";
 import { HabitDependenciesManager } from "./habit-dependencies-manager";
 
 type HabitListItem = HabitSummary & { isOptimistic?: boolean };
@@ -428,7 +429,7 @@ export function HabitsClient({
 								showToast({
 									title: "Photo upload failed",
 									description: uploadError.message || "Could not upload photo. Continuing without photo.",
-									variant: "error",
+									type: "error",
 								});
 							} else if (uploadData) {
 								const {
@@ -442,7 +443,7 @@ export function HabitsClient({
 						showToast({
 							title: "Photo upload failed",
 							description: "Could not upload photo. Continuing without photo.",
-							variant: "error",
+							type: "error",
 						});
 					} finally {
 						setIsUploadingPhoto(false);
@@ -477,7 +478,7 @@ export function HabitsClient({
 						description: checkinNote || photoUrl
 							? "Your progress has been saved with your note and photo."
 							: "Your progress has been saved.",
-						variant: "success",
+						type: "success",
 					});
 
 					setShowCheckinDialog(false);
@@ -490,7 +491,7 @@ export function HabitsClient({
 					showToast({
 						title: "Check-in failed",
 						description: result.message || "Could not complete check-in.",
-						variant: "error",
+						type: "error",
 					});
 				}
 			} catch (err) {
@@ -499,7 +500,7 @@ export function HabitsClient({
 				showToast({
 					title: "Check-in failed",
 					description: "An unexpected error occurred.",
-					variant: "error",
+					type: "error",
 				});
 			} finally {
 				setPendingCheckins((prev) => {
@@ -804,7 +805,7 @@ function HabitGrid({
 	const [showShareDialog, setShowShareDialog] = useState(false);
 	const [habitToShare, setHabitToShare] = useState<HabitListItem | null>(null);
 	const [shareDescription, setShareDescription] = useState("");
-	const [shareCategory, setShareCategory] = useState<string>("");
+	const [shareCategory, setShareCategory] = useState<TemplateCategory | "">("");
 	const [shareTags, setShareTags] = useState("");
 	const [isSharing, setIsSharing] = useState(false);
 	const { showToast } = useToast();
@@ -839,7 +840,7 @@ function HabitGrid({
 			showToast({
 				title: "Success",
 				description: result.message,
-				variant: "success",
+				type: "success",
 			});
 			setShowShareDialog(false);
 			setHabitToShare(null);
@@ -847,7 +848,7 @@ function HabitGrid({
 			showToast({
 				title: "Error",
 				description: result.message,
-				variant: "error",
+				type: "error",
 			});
 		}
 	};
@@ -1038,7 +1039,7 @@ function HabitGrid({
 								id="share-category"
 								className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 								value={shareCategory}
-								onChange={(e) => setShareCategory(e.target.value)}
+								onChange={(e) => setShareCategory(e.target.value as TemplateCategory | "")}
 							>
 								<option value="">Select a category</option>
 								<option value="fitness">Fitness</option>

@@ -71,6 +71,7 @@ const updateChallengeSchema = z.object({
 // HELPER FUNCTIONS
 // ========================================
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toChallengeWithCreator(record: any): ChallengeWithCreator {
 	return {
 		id: record.id,
@@ -108,6 +109,7 @@ function toChallengeWithCreator(record: any): ChallengeWithCreator {
 	};
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toParticipantWithProfile(record: any): ParticipantWithProfile {
 	return {
 		challengeId: record.challenge_id,
@@ -273,6 +275,7 @@ export async function updateChallenge(input: UpdateChallengeInput): Promise<Chal
 	}
 
 	// Build update object
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const updates: any = {};
 	if (parsed.data.title !== undefined) updates.title = parsed.data.title;
 	if (parsed.data.description !== undefined) updates.description = parsed.data.description;
@@ -711,6 +714,7 @@ export async function getChallengeLeaderboard(challengeId: string): Promise<Lead
 		.select('*')
 		.eq('challenge_id', challengeId);
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const badgeMap = new Map<string, any[]>();
 	badges?.forEach((badge) => {
 		const userBadges = badgeMap.get(badge.user_id) || [];
@@ -890,8 +894,8 @@ export async function importChallengeHabit(challengeId: string): Promise<ImportC
 	const timezone = profile?.timezone ?? 'UTC';
 
 	// Create habit based on challenge type
-	let habitTitle = challenge.title;
-	let habitDescription = challenge.description || `Challenge: ${challenge.title}`;
+	const habitTitle = challenge.title;
+	const habitDescription = challenge.description || `Challenge: ${challenge.title}`;
 
 	// For challenges, we'll create a daily habit that participants can check-in to
 	// The challenge tracking will automatically pick up check-ins from any of the user's habits

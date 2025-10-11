@@ -75,6 +75,7 @@ const rateTemplateSchema = z.object({
 // HELPER FUNCTIONS
 // ========================================
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toHabitTemplate(record: any): HabitTemplate {
 	return {
 		id: record.id,
@@ -444,6 +445,7 @@ export async function updateTemplate(
 	const userId = session.user.id;
 
 	// Build update object (only include defined fields)
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const updates: any = {};
 	if (parsed.data.description !== undefined)
 		updates.description = parsed.data.description;

@@ -8,12 +8,14 @@ export async function GET(request: NextRequest) {
 
 	// Parse query parameters
 	const filters: TemplateFilters = {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		category: (searchParams.get("category") as any) ?? undefined,
 		search: searchParams.get("search") ?? undefined,
 		tags: searchParams.get("tags")?.split(",").filter(Boolean) ?? undefined,
 		minRating: searchParams.get("minRating")
 			? Number(searchParams.get("minRating"))
 			: undefined,
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		sortBy: (searchParams.get("sortBy") as any) ?? "recent",
 	};
 
