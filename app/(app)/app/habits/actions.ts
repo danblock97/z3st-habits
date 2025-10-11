@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { getLocalDateForTZ } from '@/lib/dates';
 import {
@@ -14,7 +15,13 @@ import { fetchUserEntitlements, canCreateHabit } from '@/lib/entitlements-server
 import { checkAndAwardBadges } from '@/lib/badges';
 
 import { habitFormInitialState, type HabitFormState } from './form-state';
-import type { HabitCadence, HabitSummary } from './types';
+import type { HabitCadence, HabitSummary, DependencyType, HabitDependencyRelation } from './types';
+import {
+  createHabitDependency as createDependency,
+  deleteHabitDependency as deleteDependency,
+  getHabitParents,
+  isHabitBlocked,
+} from '@/lib/habit-dependencies';
 
 const createHabitSchema = z.object({
   title: z
@@ -225,7 +232,11 @@ type CompleteHabitResult =
       message: string;
     };
 
-export async function completeHabitToday(params: { habitId: string }): Promise<CompleteHabitResult> {
+export async function completeHabitToday(params: {
+  habitId: string;
+  note?: string;
+  photoUrl?: string;
+}): Promise<CompleteHabitResult> {
   const supabase = await createServerClient();
   const {
     data: { session },
@@ -241,6 +252,7 @@ export async function completeHabitToday(params: { habitId: string }): Promise<C
 
   const userId = session.user.id;
   const habitId = params.habitId;
+  const { note, photoUrl } = params;
 
   const { data: habitRecord } = await supabase
     .from('habits')
@@ -265,6 +277,18 @@ export async function completeHabitToday(params: { habitId: string }): Promise<C
   const timezone = profile?.timezone ?? 'UTC';
   const localDate = getLocalDateForTZ(timezone);
 
+  // Check if habit is blocked by incomplete dependencies
+  const blockStatus = await isHabitBlocked(supabase, habitId, localDate);
+  if (blockStatus.blocked && blockStatus.missingDependencies) {
+    const missingHabits = blockStatus.missingDependencies
+      .map((dep) => `${dep.emoji || ''}${dep.title}`)
+      .join(', ');
+    return {
+      success: false,
+      message: `Complete these habits first: ${missingHabits}`,
+    };
+  }
+
   const { data: existingCheckin } = await supabase
     .from('checkins')
     .select('id, count')
@@ -277,9 +301,22 @@ export async function completeHabitToday(params: { habitId: string }): Promise<C
 
   if (existingCheckin) {
     const newCount = (existingCheckin.count ?? 0) + 1;
+    const updateData: {
+      count: number;
+      note?: string;
+      photo_url?: string;
+    } = { count: newCount };
+
+    if (note !== undefined) {
+      updateData.note = note;
+    }
+    if (photoUrl !== undefined) {
+      updateData.photo_url = photoUrl;
+    }
+
     const { data: updated, error: updateError } = await supabase
       .from('checkins')
-      .update({ count: newCount })
+      .update(updateData)
       .eq('id', existingCheckin.id)
       .select('count')
       .single();
@@ -293,14 +330,30 @@ export async function completeHabitToday(params: { habitId: string }): Promise<C
 
     todayCount = updated.count ?? newCount;
   } else {
+    const insertData: {
+      habit_id: string;
+      user_id: string;
+      local_date: string;
+      count: number;
+      note?: string;
+      photo_url?: string;
+    } = {
+      habit_id: habitId,
+      user_id: userId,
+      local_date: localDate,
+      count: 1,
+    };
+
+    if (note) {
+      insertData.note = note;
+    }
+    if (photoUrl) {
+      insertData.photo_url = photoUrl;
+    }
+
     const { data: inserted, error: insertError } = await supabase
       .from('checkins')
-      .insert({
-        habit_id: habitId,
-        user_id: userId,
-        local_date: localDate,
-        count: 1,
-      })
+      .insert(insertData)
       .select('count')
       .single();
 
@@ -479,4 +532,200 @@ export async function deleteHabit(habitId: string): Promise<DeleteHabitResult> {
     success: true,
     message: `Habit "${habit.title}" has been deleted.`,
   };
+}
+
+// ========================================
+// HABIT DEPENDENCY ACTIONS
+// ========================================
+
+type AddDependencyResult =
+  | { success: true; message: string }
+  | { success: false; message: string };
+
+export async function addHabitDependency(
+  parentHabitId: string,
+  childHabitId: string,
+  dependencyType: DependencyType = 'enables'
+): Promise<AddDependencyResult> {
+  const supabase = await createServerClient();
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    return {
+      success: false,
+      message: 'You must be signed in to manage dependencies.',
+    };
+  }
+
+  const userId = session.user.id;
+
+  // Verify both habits belong to the user
+  const { data: habits, error: habitsError } = await supabase
+    .from('habits')
+    .select('id, title, owner_id')
+    .in('id', [parentHabitId, childHabitId])
+    .eq('owner_id', userId);
+
+  if (habitsError || !habits || habits.length !== 2) {
+    return {
+      success: false,
+      message: 'One or both habits not found.',
+    };
+  }
+
+  // Create the dependency
+  const result = await createDependency(
+    supabase,
+    parentHabitId,
+    childHabitId,
+    dependencyType
+  );
+
+  if (!result.success) {
+    return {
+      success: false,
+      message: result.error || 'Could not create dependency.',
+    };
+  }
+
+  revalidatePath('/app/habits');
+  revalidatePath('/app/analytics');
+
+  return {
+    success: true,
+    message: 'Dependency created successfully.',
+  };
+}
+
+type RemoveDependencyResult =
+  | { success: true; message: string }
+  | { success: false; message: string };
+
+export async function removeHabitDependency(
+  parentHabitId: string,
+  childHabitId: string
+): Promise<RemoveDependencyResult> {
+  const supabase = await createServerClient();
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    return {
+      success: false,
+      message: 'You must be signed in to manage dependencies.',
+    };
+  }
+
+  const userId = session.user.id;
+
+  // Verify both habits belong to the user
+  const { data: habits, error: habitsError } = await supabase
+    .from('habits')
+    .select('id, owner_id')
+    .in('id', [parentHabitId, childHabitId])
+    .eq('owner_id', userId);
+
+  if (habitsError || !habits || habits.length !== 2) {
+    return {
+      success: false,
+      message: 'One or both habits not found.',
+    };
+  }
+
+  // Delete the dependency
+  const result = await deleteDependency(supabase, parentHabitId, childHabitId);
+
+  if (!result.success) {
+    return {
+      success: false,
+      message: result.error || 'Could not remove dependency.',
+    };
+  }
+
+  revalidatePath('/app/habits');
+  revalidatePath('/app/analytics');
+
+  return {
+    success: true,
+    message: 'Dependency removed successfully.',
+  };
+}
+
+type FetchHabitDependenciesResult =
+  | {
+      success: true;
+      parents: HabitDependencyRelation[];
+      children: HabitDependencyRelation[];
+    }
+  | { success: false; message: string };
+
+export async function fetchHabitDependencies(
+  habitId: string
+): Promise<FetchHabitDependenciesResult> {
+  const supabase = await createServerClient();
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user) {
+    return {
+      success: false,
+      message: 'You must be signed in to view dependencies.',
+    };
+  }
+
+  const userId = session.user.id;
+
+  // Verify habit belongs to the user
+  const { data: habit, error: habitError } = await supabase
+    .from('habits')
+    .select('id, owner_id')
+    .eq('id', habitId)
+    .eq('owner_id', userId)
+    .maybeSingle();
+
+  if (habitError || !habit) {
+    return {
+      success: false,
+      message: 'Habit not found.',
+    };
+  }
+
+  // Fetch parents and children
+  const parents = await getHabitParents(supabase, habitId);
+  const children = await getHabitChildren(supabase, habitId);
+
+  return {
+    success: true,
+    parents,
+    children,
+  };
+}
+
+async function getHabitChildren(
+  supabase: SupabaseClient,
+  habitId: string
+): Promise<HabitDependencyRelation[]> {
+  const { data, error } = await supabase.rpc('get_habit_children', {
+    p_habit_id: habitId,
+  });
+
+  if (error) {
+    console.error('Error fetching habit children:', error);
+    return [];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data || []).map((item: any) => ({
+    habitId: item.habit_id,
+    title: item.title,
+    emoji: item.emoji,
+    dependencyType: item.dependency_type as DependencyType,
+  }));
 }

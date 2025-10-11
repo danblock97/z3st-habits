@@ -11,6 +11,8 @@ type AppLayoutProps = {
 
 const APP_NAV_ITEMS = [
   { href: '/app/habits', label: 'Habits', iconName: 'ListChecks' },
+  { href: '/app/journal', label: 'Journal', iconName: 'Book' },
+  { href: '/app/templates', label: 'Templates', iconName: 'Sparkles' },
   { href: '/app/analytics', label: 'Analytics', iconName: 'BarChart3' },
   { href: '/app/groups', label: 'Groups', iconName: 'Users' },
   { href: '/app/badges', label: 'Badges', iconName: 'Medal' },

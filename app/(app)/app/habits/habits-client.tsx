@@ -18,8 +18,13 @@ import {
 	CircleDot,
 	ListChecks,
 	Plus,
+	Share2,
 	Sparkles,
 	Trash2,
+	Camera,
+	X,
+	Lock,
+	ArrowRight,
 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -48,11 +53,15 @@ import { checkStreakRisk } from "@/lib/streak-risk";
 import { useEntitlements } from "@/lib/entitlements";
 import { useToast } from "@/lib/toast";
 import type { StreakResult } from "@/lib/streak";
+import { Textarea } from "@/components/ui/textarea";
 
 import { completeHabitToday, createHabit, deleteHabit } from "./actions";
 import { habitFormInitialState } from "./form-state";
 import type { HabitCadence, HabitSummary } from "./types";
 import { GoPlusModal } from "@/components/ui/go-plus-modal";
+import { createTemplate } from "../templates/actions";
+import type { TemplateCategory } from "../templates/types";
+import { HabitDependenciesManager } from "./habit-dependencies-manager";
 
 type HabitListItem = HabitSummary & { isOptimistic?: boolean };
 
@@ -300,6 +309,16 @@ export function HabitsClient({
 		null
 	);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
+	const [showCheckinDialog, setShowCheckinDialog] = useState(false);
+	const [habitToCheckin, setHabitToCheckin] = useState<HabitListItem | null>(
+		null
+	);
+	const [checkinNote, setCheckinNote] = useState("");
+	const [checkinPhoto, setCheckinPhoto] = useState<File | null>(null);
+	const [checkinPhotoPreview, setCheckinPhotoPreview] = useState<
+		string | null
+	>(null);
+	const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
 	const entitlements = useEntitlements();
 
@@ -342,20 +361,103 @@ export function HabitsClient({
 	}, [streakRisk.mostAtRiskHabit]);
 
 	const handleTodayClick = useCallback(
-		async (habit: HabitListItem) => {
+		(habit: HabitListItem) => {
 			if (habit.isOptimistic || pendingCheckins[habit.id]) {
 				return;
 			}
+			setHabitToCheckin(habit);
+			setShowCheckinDialog(true);
+			setCheckinNote("");
+			setCheckinPhoto(null);
+			setCheckinPhotoPreview(null);
+		},
+		[pendingCheckins]
+	);
 
-			const originalCount = habit.todayCount;
+	const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if (file) {
+			setCheckinPhoto(file);
+			const reader = new FileReader();
+			reader.onloadend = () => {
+				setCheckinPhotoPreview(reader.result as string);
+			};
+			reader.readAsDataURL(file);
+		}
+	};
 
-			handleOptimisticIncrement(habit.id);
-			setPendingCheckins((prev) => ({ ...prev, [habit.id]: true }));
+	const handleRemovePhoto = () => {
+		setCheckinPhoto(null);
+		setCheckinPhotoPreview(null);
+	};
+
+	const handleConfirmCheckin = useCallback(
+		async () => {
+			if (!habitToCheckin || pendingCheckins[habitToCheckin.id]) {
+				return;
+			}
+
+			const originalCount = habitToCheckin.todayCount;
+
+			handleOptimisticIncrement(habitToCheckin.id);
+			setPendingCheckins((prev) => ({ ...prev, [habitToCheckin.id]: true }));
 
 			try {
-				const result = await completeHabitToday({ habitId: habit.id });
+				let photoUrl: string | undefined;
+
+				// Upload photo if present
+				if (checkinPhoto) {
+					setIsUploadingPhoto(true);
+					try {
+						const { createClient } = await import("@/lib/supabase/client");
+						const supabase = createClient();
+						const {
+							data: { user },
+						} = await supabase.auth.getUser();
+
+						if (user) {
+							const fileExt = checkinPhoto.name.split(".").pop();
+							const fileName = `${user.id}/${habitToCheckin.id}/${Date.now()}.${fileExt}`;
+
+							const { data: uploadData, error: uploadError } =
+								await supabase.storage
+									.from("checkin-photos")
+									.upload(fileName, checkinPhoto);
+
+							if (uploadError) {
+								console.error("Photo upload error:", uploadError);
+								showToast({
+									title: "Photo upload failed",
+									description: uploadError.message || "Could not upload photo. Continuing without photo.",
+									type: "error",
+								});
+							} else if (uploadData) {
+								const {
+									data: { publicUrl },
+								} = supabase.storage.from("checkin-photos").getPublicUrl(fileName);
+								photoUrl = publicUrl;
+							}
+						}
+					} catch (uploadErr) {
+						console.error("Photo upload exception:", uploadErr);
+						showToast({
+							title: "Photo upload failed",
+							description: "Could not upload photo. Continuing without photo.",
+							type: "error",
+						});
+					} finally {
+						setIsUploadingPhoto(false);
+					}
+				}
+
+				const result = await completeHabitToday({
+					habitId: habitToCheckin.id,
+					note: checkinNote || undefined,
+					photoUrl,
+				});
+
 				if (result.success) {
-					handleSetTodayCount(habit.id, result.periodCount);
+					handleSetTodayCount(habitToCheckin.id, result.periodCount);
 
 					// Show badge notifications if any were awarded
 					if (result.badges && result.badges.length > 0) {
@@ -370,20 +472,54 @@ export function HabitsClient({
 							}
 						});
 					}
+
+					showToast({
+						title: "Check-in complete!",
+						description: checkinNote || photoUrl
+							? "Your progress has been saved with your note and photo."
+							: "Your progress has been saved.",
+						type: "success",
+					});
+
+					setShowCheckinDialog(false);
+					setHabitToCheckin(null);
+					setCheckinNote("");
+					setCheckinPhoto(null);
+					setCheckinPhotoPreview(null);
 				} else {
-					handleSetTodayCount(habit.id, originalCount);
+					handleSetTodayCount(habitToCheckin.id, originalCount);
+					showToast({
+						title: "Check-in failed",
+						description: result.message || "Could not complete check-in.",
+						type: "error",
+					});
 				}
-			} catch {
-				handleSetTodayCount(habit.id, originalCount);
+			} catch (err) {
+				console.error("Check-in error:", err);
+				handleSetTodayCount(habitToCheckin.id, originalCount);
+				showToast({
+					title: "Check-in failed",
+					description: "An unexpected error occurred.",
+					type: "error",
+				});
 			} finally {
 				setPendingCheckins((prev) => {
 					const next = { ...prev };
-					delete next[habit.id];
+					delete next[habitToCheckin.id];
 					return next;
 				});
+				setIsUploadingPhoto(false);
 			}
 		},
-		[pendingCheckins, handleOptimisticIncrement, handleSetTodayCount, showToast]
+		[
+			habitToCheckin,
+			pendingCheckins,
+			checkinNote,
+			checkinPhoto,
+			handleOptimisticIncrement,
+			handleSetTodayCount,
+			showToast,
+		]
 	);
 
 	const hasHabits = sortedHabits.length > 0;
@@ -490,6 +626,7 @@ export function HabitsClient({
 					onDeleteHabit={handleDeleteHabit}
 					pendingCheckins={pendingCheckins}
 					habitRefs={habitRefs}
+					allHabits={optimisticHabits}
 				/>
 			) : (
 				<EmptyHabitsState onCreate={() => setIsDialogOpen(true)} />
@@ -512,6 +649,107 @@ export function HabitsClient({
 				feature={upsellFeature}
 				targetPlan={targetPlan}
 			/>
+
+			{/* Check-in Dialog */}
+			<Dialog open={showCheckinDialog} onOpenChange={setShowCheckinDialog}>
+				<DialogContent className="sm:max-w-[500px]">
+					<DialogHeader>
+						<DialogTitle>
+							Check in: {habitToCheckin?.title} {habitToCheckin?.emoji}
+						</DialogTitle>
+						<DialogDescription>
+							Add a note or photo to capture your progress and reflections.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4">
+						<div>
+							<label
+								htmlFor="checkin-note"
+								className="text-sm font-medium mb-2 block"
+							>
+								Note (optional)
+							</label>
+							<Textarea
+								id="checkin-note"
+								placeholder="How did it go? Any reflections?"
+								value={checkinNote}
+								onChange={(e) => setCheckinNote(e.target.value)}
+								rows={4}
+								maxLength={1000}
+								className="resize-none"
+							/>
+							<p className="text-xs text-muted-foreground mt-1">
+								{checkinNote.length}/1000
+							</p>
+						</div>
+						<div>
+							<label className="text-sm font-medium mb-2 block">
+								Photo (optional)
+							</label>
+							{checkinPhotoPreview ? (
+								<div className="relative">
+									<img
+										src={checkinPhotoPreview}
+										alt="Check-in preview"
+										className="w-full h-48 object-cover rounded-lg"
+									/>
+									<Button
+										type="button"
+										variant="destructive"
+										size="sm"
+										className="absolute top-2 right-2"
+										onClick={handleRemovePhoto}
+									>
+										<X className="h-4 w-4" />
+									</Button>
+								</div>
+							) : (
+								<div className="flex items-center justify-center border-2 border-dashed border-border rounded-lg p-6">
+									<label
+										htmlFor="photo-upload"
+										className="cursor-pointer flex flex-col items-center gap-2"
+									>
+										<Camera className="h-8 w-8 text-muted-foreground" />
+										<span className="text-sm text-muted-foreground">
+											Click to upload a photo
+										</span>
+										<input
+											id="photo-upload"
+											type="file"
+											accept="image/*"
+											onChange={handlePhotoChange}
+											className="hidden"
+										/>
+									</label>
+								</div>
+							)}
+						</div>
+					</div>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setShowCheckinDialog(false)}
+							disabled={
+								isUploadingPhoto || pendingCheckins[habitToCheckin?.id || ""]
+							}
+						>
+							Cancel
+						</Button>
+						<Button
+							onClick={handleConfirmCheckin}
+							disabled={
+								isUploadingPhoto || pendingCheckins[habitToCheckin?.id || ""]
+							}
+						>
+							{isUploadingPhoto
+								? "Uploading..."
+								: pendingCheckins[habitToCheckin?.id || ""]
+									? "Logging..."
+									: "Complete Check-in"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			{/* Delete Confirmation Dialog */}
 			<Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -555,20 +793,73 @@ function HabitGrid({
 	onDeleteHabit,
 	pendingCheckins,
 	habitRefs,
+	allHabits,
 }: {
 	habits: HabitListItem[];
 	onCheckIn: (habit: HabitListItem) => void;
 	onDeleteHabit: (habit: HabitListItem) => void;
 	pendingCheckins: Record<string, boolean>;
 	habitRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
+	allHabits: HabitListItem[];
 }) {
+	const [showShareDialog, setShowShareDialog] = useState(false);
+	const [habitToShare, setHabitToShare] = useState<HabitListItem | null>(null);
+	const [shareDescription, setShareDescription] = useState("");
+	const [shareCategory, setShareCategory] = useState<TemplateCategory | "">("");
+	const [shareTags, setShareTags] = useState("");
+	const [isSharing, setIsSharing] = useState(false);
+	const { showToast } = useToast();
+
+	const handleShareClick = (habit: HabitListItem) => {
+		setHabitToShare(habit);
+		setShowShareDialog(true);
+		setShareDescription("");
+		setShareCategory("");
+		setShareTags("");
+	};
+
+	const handleConfirmShare = async () => {
+		if (!habitToShare) return;
+
+		setIsSharing(true);
+		const tags = shareTags
+			.split(",")
+			.map((t) => t.trim())
+			.filter(Boolean);
+
+		const result = await createTemplate({
+			habitId: habitToShare.id,
+			description: shareDescription || undefined,
+			category: shareCategory || undefined,
+			tags: tags.length > 0 ? tags : undefined,
+		});
+
+		setIsSharing(false);
+
+		if (result.success) {
+			showToast({
+				title: "Success",
+				description: result.message,
+				type: "success",
+			});
+			setShowShareDialog(false);
+			setHabitToShare(null);
+		} else {
+			showToast({
+				title: "Error",
+				description: result.message,
+				type: "error",
+			});
+		}
+	};
 	if (!habits.length) {
 		return null;
 	}
 
 	return (
-		<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{habits.map((habit) => (
+		<>
+			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+				{habits.map((habit) => (
 				<Card
 					key={habit.id}
 					ref={(el) => {
@@ -638,6 +929,22 @@ function HabitGrid({
 								Created {new Date(habit.createdAt).toLocaleDateString("en-US")}
 							</span>
 						</div>
+						{(habit.parents && habit.parents.length > 0) || (habit.children && habit.children.length > 0) ? (
+							<div className="flex flex-wrap gap-2">
+								{habit.parents && habit.parents.length > 0 && (
+									<Badge variant="outline" className="text-xs gap-1">
+										<Lock className="h-3 w-3" />
+										{habit.parents.length} parent{habit.parents.length > 1 ? 's' : ''}
+									</Badge>
+								)}
+								{habit.children && habit.children.length > 0 && (
+									<Badge variant="outline" className="text-xs gap-1">
+										<ArrowRight className="h-3 w-3" />
+										{habit.children.length} child{habit.children.length > 1 ? 'ren' : ''}
+									</Badge>
+								)}
+							</div>
+						) : null}
 						<div className="space-y-2">
 							<div className="flex items-center justify-between text-xs font-medium text-foreground/80">
 								<span>Today</span>
@@ -662,7 +969,21 @@ function HabitGrid({
 							{pendingCheckins[habit.id] ? "Logging…" : "Today"}
 						</Button>
 					</CardContent>
-					<div className="border-t bg-muted/30 p-4">
+					<div className="border-t bg-muted/30 p-4 space-y-2">
+						<HabitDependenciesManager
+							currentHabit={habit}
+							availableHabits={allHabits.filter(h => !h.isOptimistic)}
+						/>
+						<Button
+							variant="outline"
+							size="sm"
+							className="w-full"
+							onClick={() => handleShareClick(habit)}
+							disabled={habit.isOptimistic}
+						>
+							<Share2 className="mr-2 h-4 w-4" />
+							Share as Template
+						</Button>
 						<Button
 							variant="outline"
 							size="sm"
@@ -675,8 +996,96 @@ function HabitGrid({
 						</Button>
 					</div>
 				</Card>
-			))}
-		</div>
+				))}
+			</div>
+
+			{/* Share Template Dialog */}
+			<Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+				<DialogContent className="sm:max-w-[500px]">
+					<DialogHeader>
+						<DialogTitle>Share Habit as Template</DialogTitle>
+						<DialogDescription>
+							Share &ldquo;{habitToShare?.title}&rdquo; with the community.
+							Others will be able to import it as their own habit.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4">
+						<div>
+							<label
+								htmlFor="share-description"
+								className="text-sm font-medium mb-2 block"
+							>
+								Description (optional)
+							</label>
+							<Input
+								id="share-description"
+								placeholder="What makes this habit successful?"
+								value={shareDescription}
+								onChange={(e) => setShareDescription(e.target.value)}
+								maxLength={500}
+							/>
+							<p className="text-xs text-muted-foreground mt-1">
+								{shareDescription.length}/500
+							</p>
+						</div>
+						<div>
+							<label
+								htmlFor="share-category"
+								className="text-sm font-medium mb-2 block"
+							>
+								Category (optional)
+							</label>
+							<select
+								id="share-category"
+								className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+								value={shareCategory}
+								onChange={(e) => setShareCategory(e.target.value as TemplateCategory | "")}
+							>
+								<option value="">Select a category</option>
+								<option value="fitness">Fitness</option>
+								<option value="health">Health</option>
+								<option value="productivity">Productivity</option>
+								<option value="mindfulness">Mindfulness</option>
+								<option value="learning">Learning</option>
+								<option value="social">Social</option>
+								<option value="finance">Finance</option>
+								<option value="creative">Creative</option>
+								<option value="other">Other</option>
+							</select>
+						</div>
+						<div>
+							<label
+								htmlFor="share-tags"
+								className="text-sm font-medium mb-2 block"
+							>
+								Tags (optional)
+							</label>
+							<Input
+								id="share-tags"
+								placeholder="morning, wellness, energy (comma separated)"
+								value={shareTags}
+								onChange={(e) => setShareTags(e.target.value)}
+							/>
+							<p className="text-xs text-muted-foreground mt-1">
+								Maximum 5 tags, comma separated
+							</p>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setShowShareDialog(false)}
+							disabled={isSharing}
+						>
+							Cancel
+						</Button>
+						<Button onClick={handleConfirmShare} disabled={isSharing}>
+							{isSharing ? "Sharing..." : "Share Template"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+		</>
 	);
 }
 

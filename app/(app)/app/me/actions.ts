@@ -35,9 +35,17 @@ const profileSchema = z.object({
   is_public: z.boolean().optional(),
   avatar_url: z
     .string()
-    .url('Avatar URL must be a valid URL.')
     .optional()
-    .transform((value) => (value ? value : null)),
+    .transform((value) => {
+      if (!value || value === '') return null;
+      // Validate URL only if a value is provided
+      try {
+        new URL(value);
+        return value;
+      } catch {
+        throw new Error('Avatar URL must be a valid URL.');
+      }
+    }),
 });
 
 type ProfileInput = z.infer<typeof profileSchema>;
