@@ -2,3 +2,4 @@
 export { default as AnalyticsDashboard } from './analytics-dashboard';
 export { default as BasicAnalytics } from './basic-analytics';
 export { default as AdvancedAnalytics } from './advanced-analytics';
+export { default as EnhancedAnalyticsView } from './enhanced-analytics-view';
