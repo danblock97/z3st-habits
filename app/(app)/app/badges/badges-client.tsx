@@ -13,7 +13,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { CelebrationModal } from "@/components/celebration-modal";
+import { useCelebration } from "@/hooks/use-celebration";
 import type { BadgeDefinition } from "./page";
+import type { MilestoneCardProps } from "@/components/milestone-card";
 
 type BadgesClientProps = {
 	badges: BadgeDefinition[];
@@ -40,6 +43,9 @@ export function BadgesClient({ badges }: BadgesClientProps) {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [selectedCategory, setSelectedCategory] = useState<string>("all");
 	const [showUnlockedOnly, setShowUnlockedOnly] = useState(false);
+	const [selectedBadge, setSelectedBadge] = useState<BadgeDefinition | null>(null);
+	const [showCelebration, setShowCelebration] = useState(false);
+	const { triggerBadgeCelebration } = useCelebration();
 
 	const categories = [
 		"all",
@@ -59,6 +65,24 @@ export function BadgesClient({ badges }: BadgesClientProps) {
 
 	const unlockedCount = badges.filter((b) => b.unlocked).length;
 	const totalCount = badges.length;
+
+	const handleBadgeClick = (badge: BadgeDefinition) => {
+		if (badge.unlocked) {
+			setSelectedBadge(badge);
+			setShowCelebration(true);
+		}
+	};
+
+	const getMilestoneFromBadge = (badge: BadgeDefinition): Omit<MilestoneCardProps, 'className'> => {
+		return {
+			type: badge.category === 'streak' ? 'streak' : badge.category === 'habits' ? 'habit_count' : 'badge',
+			title: badge.name,
+			description: badge.description,
+			emoji: badge.emoji,
+			rarity: badge.rarity,
+			unlockedAt: badge.unlockedAt ? new Date(badge.unlockedAt) : new Date(),
+		};
+	};
 
 	return (
 		<div className="space-y-6">
@@ -156,8 +180,9 @@ export function BadgesClient({ badges }: BadgesClientProps) {
 						key={badge.id}
 						className={cn(
 							"transition-all duration-200 hover:shadow-md",
-							badge.unlocked ? "opacity-100" : "opacity-60"
+							badge.unlocked ? "opacity-100 cursor-pointer hover:scale-105" : "opacity-60",
 						)}
+						onClick={() => handleBadgeClick(badge)}
 					>
 						<CardHeader className="pb-3">
 							<div className="flex items-start justify-between">
@@ -202,6 +227,15 @@ export function BadgesClient({ badges }: BadgesClientProps) {
 						Try adjusting your search or filter criteria
 					</p>
 				</div>
+			)}
+
+			{/* Celebration Modal */}
+			{selectedBadge && (
+				<CelebrationModal
+					open={showCelebration}
+					onOpenChange={setShowCelebration}
+					milestone={getMilestoneFromBadge(selectedBadge)}
+				/>
 			)}
 		</div>
 	);
