@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "*.supabase.co",
+        hostname: "db.z3st.app",
         pathname: "/storage/v1/object/public/**",
       },
     ],
