@@ -31,6 +31,10 @@ import Image from "next/image";
 import { signOut } from "./(auth)/actions";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { cookies as nextCookies } from "next/headers";
+import { CONSENT_COOKIE_NAME, parseConsentCookie, isCategoryAllowed } from "@/lib/cookie-consent";
+import { CookieConsent } from "@/components/cookie-consent";
+import { CookieSettingsButton } from "@/components/cookie-settings-button";
 
 import "./globals.css";
 
@@ -214,6 +218,13 @@ export default async function RootLayout({
 		userProfile = profile;
 	}
 
+	// Read cookie consent for analytics gating
+	const cookieStore = await nextCookies();
+	const consentCookie = cookieStore.get(CONSENT_COOKIE_NAME)?.value ?? null;
+	const consentState = parseConsentCookie(consentCookie);
+	const allowAnalytics = isCategoryAllowed(consentState, 'analytics');
+	const allowPerformance = isCategoryAllowed(consentState, 'performance');
+
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
@@ -234,8 +245,9 @@ export default async function RootLayout({
 					<SiteFooter />
 				</div>
 				{isAuthenticated ? <MobileBottomNav /> : null}
-				<Analytics />
-				<SpeedInsights />
+				{allowAnalytics ? <Analytics /> : null}
+				{allowPerformance ? <SpeedInsights /> : null}
+				<CookieConsent />
 			</body>
 		</html>
 	);
@@ -391,6 +403,7 @@ function SiteFooter() {
 							{link.label}
 						</Link>
 					))}
+					<CookieSettingsButton variant="link" />
 				</nav>
 			</div>
 		</footer>
