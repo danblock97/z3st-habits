@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { TemplatesClient } from "./templates-client";
 import { getTemplates, getFeaturedTemplates } from "./actions";
+import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata = {
 	title: "Habit Templates | Z3st Habits",
@@ -9,6 +10,12 @@ export const metadata = {
 };
 
 export default async function TemplatesPage() {
+	const supabase = await createServerClient();
+	const {
+		data: { session },
+	} = await supabase.auth.getSession();
+	const currentUserId = session?.user.id ?? null;
+
 	const [templates, featuredTemplates] = await Promise.all([
 		getTemplates({ sortBy: "recent" }),
 		getFeaturedTemplates(),
@@ -27,6 +34,7 @@ export default async function TemplatesPage() {
 				<TemplatesClient
 					initialTemplates={templates}
 					featuredTemplates={featuredTemplates}
+					currentUserId={currentUserId}
 				/>
 			</Suspense>
 		</div>
