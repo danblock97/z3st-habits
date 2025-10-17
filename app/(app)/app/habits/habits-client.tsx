@@ -391,6 +391,20 @@ export function HabitsClient({
 		setCheckinPhotoPreview(null);
 	};
 
+	const handleCheckinDialogChange = useCallback(
+		(open: boolean) => {
+			setShowCheckinDialog(open);
+			// Clean up state when dialog is closed
+			if (!open) {
+				setHabitToCheckin(null);
+				setCheckinNote("");
+				setCheckinPhoto(null);
+				setCheckinPhotoPreview(null);
+			}
+		},
+		[]
+	);
+
 	const handleConfirmCheckin = useCallback(
 		async () => {
 			if (!habitToCheckin || pendingCheckins[habitToCheckin.id]) {
@@ -651,7 +665,7 @@ export function HabitsClient({
 			/>
 
 			{/* Check-in Dialog */}
-			<Dialog open={showCheckinDialog} onOpenChange={setShowCheckinDialog}>
+			<Dialog open={showCheckinDialog} onOpenChange={handleCheckinDialogChange}>
 				<DialogContent className="sm:max-w-[500px]">
 					<DialogHeader>
 						<DialogTitle>
@@ -727,6 +741,7 @@ export function HabitsClient({
 					</div>
 					<DialogFooter>
 						<Button
+							type="button"
 							variant="outline"
 							onClick={() => setShowCheckinDialog(false)}
 							disabled={
@@ -736,6 +751,7 @@ export function HabitsClient({
 							Cancel
 						</Button>
 						<Button
+							type="button"
 							onClick={handleConfirmCheckin}
 							disabled={
 								isUploadingPhoto || pendingCheckins[habitToCheckin?.id || ""]
